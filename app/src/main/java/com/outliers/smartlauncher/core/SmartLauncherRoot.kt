@@ -37,7 +37,7 @@ class SmartLauncherRoot(val context: Context) {
 
     val allInstalledApps: ArrayList<AppModel>
         get() {
-            if (appModels.size == 0) {
+            //if (appModels.size == 0) {
                 appModels.clear()
                 appModels.addAll(
                     getAppModelsFromPackageInfoList(
@@ -49,7 +49,7 @@ class SmartLauncherRoot(val context: Context) {
                 sortApplicationsByName(appModels)
                 filterOutUnknownApps(appModels)
                 Log.v("Apps", appModels.size.toString())
-            }
+            //}
             return appModels
         }
 

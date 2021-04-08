@@ -4,9 +4,11 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.View
 import android.widget.EditText
 import android.widget.ImageView
+import androidx.core.content.res.ResourcesCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.GridLayoutManager
@@ -63,13 +65,13 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
                 when (newState) {
                     BottomSheetBehavior.STATE_EXPANDED -> imageView.setImageDrawable(
-                        resources.getDrawable(
+                        ResourcesCompat.getDrawable(resources,
                             R.drawable.round_expand_more_black_36,
                             theme
                         )
                     )
                     BottomSheetBehavior.STATE_COLLAPSED -> imageView.setImageDrawable(
-                        resources.getDrawable(
+                        ResourcesCompat.getDrawable(resources,
                             R.drawable.round_expand_less_black_36,
                             theme
                         )
@@ -80,8 +82,8 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
             override fun onSlide(bottomSheet: View, slideOffset: Float) {
 
             }
-
         })
+        Log.v("test", Utils.isHeadsetConnected(this).toString())
     }
 
     fun searchApp(s: String) {
