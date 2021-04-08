@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="text_heading3">14sp</dimen>
+    <dimen name="text_heading2">16sp</dimen>
+    <dimen name="text_heading1">18sp</dimen>
+    <dimen name="text_body">12sp</dimen>
+    <dimen name="text_body_small">10sp</dimen>
+    <dimen name="margin_default">16dp</dimen>
+    <dimen name="margin_large">24dp</dimen>
+    <dimen name="margin_larger">32dp</dimen>
+    <dimen name="margin_small">8dp</dimen>
+    <dimen name="action_bar_height">56dp</dimen>
+    <dimen name="activity_title_size">18sp</dimen>
+    <dimen name="app_icon_dim">30dp</dimen>
+</resources>
