@@ -90,7 +90,7 @@ data class AppModel(var appName: String, var packageName: String,
                         context.packageManager.getLaunchIntentForPackage(appInfo.packageName))
                 }
             }
-            Log.v("test", userFacingApps.size.toString())
+            // Log.v("test", userFacingApps.size.toString())
             for (p in packageInfos) {
                 try {
                     val appModel = AppModel(
@@ -101,7 +101,7 @@ data class AppModel(var appName: String, var packageName: String,
                     appModel.appName =
                         p.applicationInfo.loadLabel(context.packageManager).toString()
                     appModel.packageName = p.packageName
-                    Log.v("testVname", p.packageName)
+                    // Log.v("testVname", p.packageName)
                     appModel.versionName = p.versionName
                     appModel.versionCode = p.versionCode  // TODO use longVersionCode instead
                     appModel.appIcon = p.applicationInfo.loadIcon(context.packageManager)
@@ -110,8 +110,8 @@ data class AppModel(var appName: String, var packageName: String,
                     // if(userFacingApps.contains(appModel.packageName))
                     if (appModel.launchIntent != null) //  || appModel.launchIntent != null
                         appModels.add(appModel)
-                }catch (ex:java.lang.Exception){
-                    Log.e("appModelError", Log.getStackTraceString(ex))
+                }catch (ex: NullPointerException){
+                    Log.e("appModelError", Log.getStackTraceString(ex) + "\n" + p.packageName)
                 }
             }
             return appModels

@@ -1,5 +1,6 @@
 package com.outliers.smartlauncher.ui
 
+import android.content.ActivityNotFoundException
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.text.Editable
@@ -8,7 +9,9 @@ import android.util.Log
 import android.view.View
 import android.widget.EditText
 import android.widget.ImageView
+import android.widget.Toast
 import androidx.core.content.res.ResourcesCompat
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.GridLayoutManager
@@ -17,6 +20,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.outliers.smartlauncher.R
 import com.outliers.smartlauncher.core.MainViewModel
 import com.outliers.smartlauncher.core.RVItemDecoration
+import com.outliers.smartlauncher.core.SmartLauncherApplication
 import com.outliers.smartlauncher.databinding.ActivityMainBinding
 import com.outliers.smartlauncher.models.AppModel
 import com.outliers.smartlauncher.utils.Utils
@@ -83,7 +87,21 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
 
             }
         })
-        Log.v("test", Utils.isHeadsetConnected(this).toString())
+        Utils.hideKeyboard(this)
+        Log.v("test", Utils.isHeadsetConnected(this).toString()+
+                ", "+Utils.getConnectionType(this)+
+        ", "+ Utils.isWifiConnected(this)+ ", "+ Utils.isMobileDataConnected(this)+
+        ", "+ Utils.getBatteryLevel(this))
+
+        (application as SmartLauncherApplication).appListRefreshed.let { it ->
+            it.observe(this, { bool ->
+                if(bool){
+                    adapter.notifyDataSetChanged()
+                }
+                if(it.value != bool)
+                    it.value = bool
+                Log.v("test-refreshObs", "${it.value}, $bool")
+        }) }
     }
 
     fun searchApp(s: String) {
@@ -92,6 +110,11 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
     }
 
     override fun onItemClick(position: Int, appModel: AppModel, extras: Bundle?) {
-        appModel.launchIntent?.let{startActivity(it)}
+        try {
+            appModel.launchIntent?.let { startActivity(it) }
+            viewModel.onAppClicked(appModel)
+        }catch (ex: ActivityNotFoundException){
+            Toast.makeText(this, getString(R.string.app_not_found), Toast.LENGTH_SHORT).show()
+        }
     }
 }

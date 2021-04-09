@@ -1,15 +1,18 @@
 package com.outliers.smartlauncher.core
 
 import android.app.Application
+import android.util.Log
+import androidx.core.content.ContextCompat.startActivity
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.MutableLiveData
 import com.outliers.smartlauncher.models.AppModel
 import java.util.*
 import kotlin.collections.ArrayList
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
-    
-    var appList: ArrayList<AppModel> =
-        SmartLauncherRoot.getInstance(application)?.allInstalledApps ?: ArrayList()
+
+    val smartLauncherRoot = SmartLauncherRoot.getInstance(application)
+    var appList: ArrayList<AppModel> = smartLauncherRoot?.allInstalledApps ?: ArrayList()
     var appListCopy: ArrayList<AppModel> = appList.clone() as ArrayList<AppModel>
 
     fun searchTextChanged(s: String){
@@ -24,5 +27,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     .contains(s.toLowerCase(Locale.getDefault())))
                         appList.add(appModel)
         }
+    }
+
+    fun onAppClicked(appModel: AppModel){
+        smartLauncherRoot?.genAppLaunchVec(appModel.packageName)
     }
 }

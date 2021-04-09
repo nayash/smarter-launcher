@@ -4,13 +4,20 @@ import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothHeadset
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ApplicationInfo
 import android.media.AudioManager
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.os.BatteryManager
+import android.os.Build
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.RotateAnimation
 import android.view.inputmethod.InputMethodManager
 import androidx.core.content.ContextCompat.getSystemService
+import org.apache.commons.math3.linear.RealVector
 import java.util.*
 
 
@@ -77,5 +84,86 @@ object Utils {
 
     fun isHeadsetConnected(context: Context): Boolean{ // either BT or wired
         return isBluetoothHeadsetConnected() || isWiredHeadsetConnected(context)
+    }
+
+    fun l2Distance(vec1: RealVector, vec2: RealVector): Double{
+        return vec1.getDistance(vec2)
+    }
+
+    fun isCharging(context: Context): Boolean{
+        val batteryStatus: Intent? = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { ifilter ->
+            context.registerReceiver(null, ifilter)
+        }
+        // isCharging if true indicates charging is ongoing and vice-versa
+        val status: Int = batteryStatus?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
+        val isCharging: Boolean = status == BatteryManager.BATTERY_STATUS_CHARGING
+                || status == BatteryManager.BATTERY_STATUS_FULL
+        return isCharging
+    }
+
+    fun isWifiConnected(context: Context): Boolean{
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager?
+        val ni = cm!!.activeNetworkInfo
+        if (ni != null && ni.type == ConnectivityManager.TYPE_WIFI) {
+            return true
+        }
+        return false
+    }
+
+    fun isMobileDataConnected(context: Context): Boolean{
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager?
+        val ni = cm!!.activeNetworkInfo
+        if (ni != null && ni.type == ConnectivityManager.TYPE_MOBILE) {
+            return true
+        }
+        return false
+    }
+
+    fun getConnectionType(context: Context): Int {
+        /**
+         * checks and returns the data connection type:
+         * 0 - no data connection
+         * 1 - WiFi
+         * 2 - Mobile data
+         */
+        var result = 0
+        val connectivityManager =
+            context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val networkCapabilities = connectivityManager.activeNetwork ?: return 0
+            val actNw =
+                connectivityManager.getNetworkCapabilities(networkCapabilities) ?: return 0
+            result = when {
+                actNw.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> return 1
+                actNw.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> return 2
+                // actNw.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
+                else -> 0
+            }
+        } else {
+            connectivityManager.run {
+                connectivityManager.activeNetworkInfo?.run {
+                    result = when (type) {
+                        ConnectivityManager.TYPE_WIFI -> 1
+                        ConnectivityManager.TYPE_MOBILE -> 2
+                        // ConnectivityManager.TYPE_ETHERNET -> true
+                        else -> 0
+                    }
+                }
+            }
+        }
+
+        return result
+    }
+
+    fun getBatteryLevel(context: Context): Float?{
+        val batteryStatus: Intent? = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { ifilter ->
+            context.registerReceiver(null, ifilter)
+        }
+        val batteryPct: Float? = batteryStatus?.let { intent ->
+            val level: Int = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+            val scale: Int = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+            level * 100 / scale.toFloat()
+        }
+        return batteryPct
     }
 }

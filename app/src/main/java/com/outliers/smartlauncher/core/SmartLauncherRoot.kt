@@ -1,22 +1,29 @@
 package com.outliers.smartlauncher.core
 
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.SharedPreferences
+import android.os.BatteryManager
+import android.service.autofill.FillEventHistory
 import android.util.Log
 import androidx.collection.ArrayMap
 import com.outliers.smartlauncher.consts.Constants
 import com.outliers.smartlauncher.models.AppModel
 import com.outliers.smartlauncher.models.AppModel.CREATOR.getAppModelsFromPackageInfoList
 import com.outliers.smartlauncher.utils.Utils.isValidString
+import org.apache.commons.math3.linear.ArrayRealVector
+import org.apache.commons.math3.linear.RealVector
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
-class SmartLauncherRoot(val context: Context) {
+class SmartLauncherRoot private constructor(val context: Context) {
 
     val appModels: ArrayList<AppModel> = ArrayList()
     val appToIdMap: ArrayMap<String, Int> = ArrayMap()  // package to hashcode map
     val launchSequence: ArrayList<String> = ArrayList(WINDOW_SIZE)  // sequence of last 'window size' package names
-
+    val launchHistory: HashMap<Int, RealVector> = HashMap()
+    val launcherPref = context.getSharedPreferences(Constants.PREF_NAME, Context.MODE_PRIVATE)
     /*appModels = AppModel.getAppModelsFromAppInfoList(context.getPackageManager().
                     getInstalledApplications(0), context);*/
 
@@ -31,13 +38,12 @@ class SmartLauncherRoot(val context: Context) {
     }
 
     init {
-        val launcherPref = context.getSharedPreferences(Constants.PREF_NAME, Context.MODE_PRIVATE)
         initPackageToIdMap(allInstalledApps, appToIdMap)
     }
 
     val allInstalledApps: ArrayList<AppModel>
-        get() {
-            //if (appModels.size == 0) {
+        get() {  // TODO instead of querying installed apps all the time, implement install/uninstall listeners and update only in such events?
+            if (appModels.size == 0) {
                 appModels.clear()
                 appModels.addAll(
                     getAppModelsFromPackageInfoList(
@@ -49,7 +55,7 @@ class SmartLauncherRoot(val context: Context) {
                 sortApplicationsByName(appModels)
                 filterOutUnknownApps(appModels)
                 Log.v("Apps", appModels.size.toString())
-            //}
+            }
             return appModels
         }
 
@@ -78,4 +84,18 @@ class SmartLauncherRoot(val context: Context) {
         launchSequence.add(packageName)
     }
 
+    fun genAppLaunchVec(packageName: String){
+        /**
+         * Time, location, weekend, AM, BTheadset, wiredHeadset, charging,
+         * cellularDataActive, wifiConnected, battery, ATF
+         */
+
+        val vecSize = 11 + allInstalledApps.size
+        val launchVec: ArrayRealVector = ArrayRealVector()
+    }
+
+    fun refreshAppList(){
+        appModels.clear()
+        allInstalledApps
+    }
 }

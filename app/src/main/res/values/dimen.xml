@@ -11,5 +11,5 @@
     <dimen name="margin_small">8dp</dimen>
     <dimen name="action_bar_height">56dp</dimen>
     <dimen name="activity_title_size">18sp</dimen>
-    <dimen name="app_icon_dim">30dp</dimen>
+    <dimen name="app_icon_dim">40dp</dimen>
 </resources>

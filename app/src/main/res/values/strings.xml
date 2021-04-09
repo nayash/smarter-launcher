@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">SmartLauncher</string>
+    <string name="app_not_found">App not found</string>
 </resources>
