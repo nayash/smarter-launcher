@@ -1,6 +1,9 @@
 package com.outliers.smartlauncher.ui
 
+import android.Manifest
 import android.content.ActivityNotFoundException
+import android.content.DialogInterface
+import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.text.Editable
@@ -10,6 +13,9 @@ import android.view.View
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
@@ -103,6 +109,8 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
                     it.value = bool
                 Log.v("test-refreshObs", "${it.value}, $bool")
         }) }
+
+        Log.v("test-onCreate", "onCreate called")
     }
 
     fun searchApp(s: String) {
@@ -117,5 +125,57 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
         }catch (ex: ActivityNotFoundException){
             Toast.makeText(this, getString(R.string.app_not_found), Toast.LENGTH_SHORT).show()
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        Log.v("test-onStart", "onStart called")
+
+        if(ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+            == PackageManager.PERMISSION_DENIED){
+            val posLambda = {requestLocationPermission()}
+            val negLambda = {}
+            Utils.showAlertDialog(this, getString(R.string.need_location_permission),
+            getString(R.string.location_permission_rationale),
+            posLambda, negLambda)
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        Log.v("test-onStop", "onStop called")
+    }
+
+    fun requestLocationPermission(){
+        ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1)
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>,
+                                            grantResults: IntArray) {
+        when (requestCode) {
+            1 -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    if ((ContextCompat.checkSelfPermission(
+                            this@MainActivity,
+                            Manifest.permission.ACCESS_FINE_LOCATION
+                        ) ==
+                                PackageManager.PERMISSION_GRANTED)
+                    ) {
+                        Toast.makeText(this, "Permission Granted", Toast.LENGTH_SHORT)
+                            .show()
+                    }
+                } else {
+                    Toast.makeText(
+                        this, getString(R.string.location_denied_consequence),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+                return
+            }
+        }
+    }
+
+    override fun onBackPressed() {
+        // disable backpress to prevent launching of system launcher TODO find better way!
     }
 }

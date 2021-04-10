@@ -62,4 +62,6 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version"
 
     implementation 'org.apache.commons:commons-math3:3.6.1'
+
+    implementation 'com.google.android.gms:play-services-location:18.0.0'
 }

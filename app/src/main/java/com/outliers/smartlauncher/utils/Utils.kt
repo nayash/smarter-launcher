@@ -4,6 +4,7 @@ import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothHeadset
 import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ApplicationInfo
@@ -16,7 +17,9 @@ import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.RotateAnimation
 import android.view.inputmethod.InputMethodManager
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat.getSystemService
+import com.outliers.smartlauncher.R
 import org.apache.commons.math3.linear.RealVector
 import java.util.*
 
@@ -68,6 +71,14 @@ object Utils {
 
     fun isHourAM(hourOfDay: Int): Boolean{
         return hourOfDay < 12
+    }
+
+    fun getHourOfDay(): Int{
+        return Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    }
+
+    fun getCurrentLocation(){
+
     }
 
     fun isBluetoothHeadsetConnected(): Boolean {
@@ -165,5 +176,24 @@ object Utils {
             level * 100 / scale.toFloat()
         }
         return batteryPct
+    }
+
+    fun showAlertDialog(context: Context, title:String, message:String,
+                        positiveCallback: () -> Unit,
+                        negativeCallback: () -> Unit,
+                        positiveAction: String = context.getString(android.R.string.ok),
+                        negativeAction: String = context.getString(android.R.string.cancel)){
+        val builder: AlertDialog.Builder = AlertDialog.Builder(context)
+        builder.setTitle(title)
+        builder.setMessage(message)
+        builder.setPositiveButton(positiveAction) { _: DialogInterface, i: Int ->
+            positiveCallback()
+        }
+
+        builder.setNegativeButton(negativeAction) { dialogInterface: DialogInterface, i: Int ->
+            negativeCallback()
+            dialogInterface.dismiss()
+        }
+        builder.show()
     }
 }
