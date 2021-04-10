@@ -88,8 +88,9 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
             }
         })
         Utils.hideKeyboard(this)
-        Log.v("test", Utils.isHeadsetConnected(this).toString()+
-                ", "+Utils.getConnectionType(this)+
+        Log.v("test", Utils.isBluetoothHeadsetConnected().toString()+ ", "+
+                Utils.isWiredHeadsetConnected(this)+
+                ", "+Utils.getConnectionType(this)+ // wrong result for Moto
         ", "+ Utils.isWifiConnected(this)+ ", "+ Utils.isMobileDataConnected(this)+
         ", "+ Utils.getBatteryLevel(this))
 

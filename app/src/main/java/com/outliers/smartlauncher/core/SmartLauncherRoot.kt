@@ -54,7 +54,7 @@ class SmartLauncherRoot private constructor(val context: Context) {
                 )
                 sortApplicationsByName(appModels)
                 filterOutUnknownApps(appModels)
-                Log.v("Apps", appModels.size.toString())
+                Log.v("test-Apps", appModels.size.toString())
             }
             return appModels
         }
@@ -80,18 +80,27 @@ class SmartLauncherRoot private constructor(val context: Context) {
     }
 
     fun appLaunched(packageName: String){
-        launchSequence.removeAt(0)  // remove oldest app history
+        processAppSuggestion(packageName)
+        if(launchSequence.size >=3)
+            launchSequence.removeAt(0)  // remove oldest app history
         launchSequence.add(packageName)
+        Log.v("test-lSeq", launchSequence.toString())
     }
 
-    fun genAppLaunchVec(packageName: String){
+    fun processAppSuggestion(packageName: String){
+        val launchVec = genAppLaunchVec(packageName)
+    }
+
+    fun genAppLaunchVec(packageName: String): ArrayRealVector{
         /**
          * Time, location, weekend, AM, BTheadset, wiredHeadset, charging,
          * cellularDataActive, wifiConnected, battery, ATF
          */
 
-        val vecSize = 11 + allInstalledApps.size
-        val launchVec: ArrayRealVector = ArrayRealVector()
+        val vecSize = 11 + allInstalledApps.size  // TODO this size will change when apps are installed or uninstalled. Need to handle such cases
+        val launchVec: ArrayRealVector = ArrayRealVector(vecSize)
+        Log.v("test-genLVec", launchVec.dimension.toString())
+        return launchVec
     }
 
     fun refreshAppList(){

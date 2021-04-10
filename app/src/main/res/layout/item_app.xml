@@ -24,6 +24,7 @@
         app:layout_constraintTop_toBottomOf="@id/iv_app"
         style="@style/AppTitle"
         tools:text="App Title"
-        android:layout_marginTop="@dimen/margin_small"/>
+        android:layout_marginTop="@dimen/margin_small"
+        android:gravity="center_horizontal"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

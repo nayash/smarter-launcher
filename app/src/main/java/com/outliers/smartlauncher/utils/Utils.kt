@@ -120,7 +120,7 @@ object Utils {
     }
 
     fun getConnectionType(context: Context): Int {
-        /**
+        /** Needs more work -- for some reason it gives wrong result on Moto G5 s plus
          * checks and returns the data connection type:
          * 0 - no data connection
          * 1 - WiFi

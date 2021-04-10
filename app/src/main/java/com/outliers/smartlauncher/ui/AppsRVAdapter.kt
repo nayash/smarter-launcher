@@ -38,9 +38,9 @@ class AppsRVAdapter(var appModels: ArrayList<AppModel>, var context: Context, pr
         val model = appModels[position]
         holder.appIcon.setImageDrawable(model.appIcon)
         var name = if (Utils.isValidString(model.appName)) model.appName else "Unknown"
-        if (name.length > 10) {
+        /*if (name.length > 10) {
             name = name.substring(0, 8) + ".."
-        }
+        }*/
         holder.tvAppName.text = name
     }
 

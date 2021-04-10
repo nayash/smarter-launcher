@@ -30,6 +30,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onAppClicked(appModel: AppModel){
-        smartLauncherRoot?.genAppLaunchVec(appModel.packageName)
+        smartLauncherRoot?.appLaunched(appModel.packageName)
     }
 }
