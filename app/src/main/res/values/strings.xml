@@ -4,4 +4,5 @@
     <string name="need_location_permission">Location Permission Needed</string>
     <string name="location_permission_rationale">Location permission is needed to predict next app usage based on location</string>
     <string name="location_denied_consequence">Location won\'t be used to learn patterns. Results may not be optimal</string>
+    <string name="location_disabled">Location is disabled. Prediction may be inaccurate</string>
 </resources>

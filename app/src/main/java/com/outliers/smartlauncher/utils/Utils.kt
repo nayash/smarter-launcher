@@ -8,18 +8,19 @@ import android.content.DialogInterface
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ApplicationInfo
+import android.location.LocationManager
 import android.media.AudioManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.BatteryManager
 import android.os.Build
+import android.provider.Settings
+import android.text.TextUtils
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.RotateAnimation
 import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.app.AlertDialog
-import androidx.core.content.ContextCompat.getSystemService
-import com.outliers.smartlauncher.R
 import org.apache.commons.math3.linear.RealVector
 import java.util.*
 
@@ -73,12 +74,12 @@ object Utils {
         return hourOfDay < 12
     }
 
-    fun getHourOfDay(): Int{
-        return Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    fun getDayOfMonth(): Int{
+        return Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
     }
 
-    fun getCurrentLocation(){
-
+    fun getHourOfDay(): Int{
+        return Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
     }
 
     fun isBluetoothHeadsetConnected(): Boolean {
@@ -178,11 +179,13 @@ object Utils {
         return batteryPct
     }
 
-    fun showAlertDialog(context: Context, title:String, message:String,
-                        positiveCallback: () -> Unit,
-                        negativeCallback: () -> Unit,
-                        positiveAction: String = context.getString(android.R.string.ok),
-                        negativeAction: String = context.getString(android.R.string.cancel)){
+    fun showAlertDialog(
+        context: Context, title: String, message: String,
+        positiveCallback: () -> Unit,
+        negativeCallback: () -> Unit,
+        positiveAction: String = context.getString(android.R.string.ok),
+        negativeAction: String = context.getString(android.R.string.cancel)
+    ){
         val builder: AlertDialog.Builder = AlertDialog.Builder(context)
         builder.setTitle(title)
         builder.setMessage(message)
@@ -195,5 +198,34 @@ object Utils {
             dialogInterface.dismiss()
         }
         builder.show()
+    }
+
+    fun isLocationEnabled(context: Context): Boolean {
+        if(Build.VERSION.SDK_INT < 28) {
+            var locationMode = 0
+            val locationProviders: String
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                try {
+                    locationMode =
+                        Settings.Secure.getInt(
+                            context.contentResolver,
+                            Settings.Secure.LOCATION_MODE
+                        )
+                } catch (e: Settings.SettingNotFoundException) {
+                    e.printStackTrace()
+                }
+                locationMode != Settings.Secure.LOCATION_MODE_OFF
+            } else {
+                locationProviders = Settings.Secure.getString(
+                    context.contentResolver,
+                    Settings.Secure.LOCATION_PROVIDERS_ALLOWED
+                )
+                !TextUtils.isEmpty(locationProviders)
+            }
+        }else {
+            val locationManager: LocationManager =
+                context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+            return locationManager.isLocationEnabled
+        }
     }
 }

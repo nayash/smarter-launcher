@@ -2,23 +2,21 @@ package com.outliers.smartlauncher.ui
 
 import android.Manifest
 import android.content.ActivityNotFoundException
-import android.content.DialogInterface
 import android.content.pm.PackageManager
-import androidx.appcompat.app.AppCompatActivity
+import android.graphics.Rect
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
+import android.view.MotionEvent
 import android.view.View
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
-import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -31,11 +29,13 @@ import com.outliers.smartlauncher.databinding.ActivityMainBinding
 import com.outliers.smartlauncher.models.AppModel
 import com.outliers.smartlauncher.utils.Utils
 
+
 class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
 
     val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
     val viewModel by lazy { ViewModelProviders.of(this).get(MainViewModel::class.java) }
     lateinit var adapter: AppsRVAdapter
+    val sheetBehavior by lazy { BottomSheetBehavior.from(binding.appListSheet) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,19 +69,19 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
         rvApps.adapter = adapter
         etSearch.clearFocus()
 
-        val bottomSheet: View = binding.appListSheet
-        val sheetBehaviour = BottomSheetBehavior.from(bottomSheet)
-        sheetBehaviour.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+        sheetBehavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
                 when (newState) {
                     BottomSheetBehavior.STATE_EXPANDED -> imageView.setImageDrawable(
-                        ResourcesCompat.getDrawable(resources,
+                        ResourcesCompat.getDrawable(
+                            resources,
                             R.drawable.round_expand_more_black_36,
                             theme
                         )
                     )
                     BottomSheetBehavior.STATE_COLLAPSED -> imageView.setImageDrawable(
-                        ResourcesCompat.getDrawable(resources,
+                        ResourcesCompat.getDrawable(
+                            resources,
                             R.drawable.round_expand_less_black_36,
                             theme
                         )
@@ -94,21 +94,23 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
             }
         })
         Utils.hideKeyboard(this)
-        Log.v("test", Utils.isBluetoothHeadsetConnected().toString()+ ", "+
-                Utils.isWiredHeadsetConnected(this)+
-                ", "+Utils.getConnectionType(this)+ // wrong result for Moto
-        ", "+ Utils.isWifiConnected(this)+ ", "+ Utils.isMobileDataConnected(this)+
-        ", "+ Utils.getBatteryLevel(this))
+        Log.v(
+            "test", Utils.isBluetoothHeadsetConnected().toString() + ", " +
+                    Utils.isWiredHeadsetConnected(this) +
+                    ", " + Utils.getConnectionType(this) + // wrong result for Moto
+                    ", " + Utils.isWifiConnected(this) + ", " + Utils.isMobileDataConnected(this) +
+                    ", " + Utils.getBatteryLevel(this)
+        )
 
         (application as SmartLauncherApplication).appListRefreshed.let { it ->
             it.observe(this, { bool ->
-                if(bool){
+                if (bool) {
                     adapter.notifyDataSetChanged()
                 }
-                if(it.value != bool)
+                if (it.value != bool)
                     it.value = bool
                 Log.v("test-refreshObs", "${it.value}, $bool")
-        }) }
+            }) }
 
         Log.v("test-onCreate", "onCreate called")
     }
@@ -135,9 +137,11 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
             == PackageManager.PERMISSION_DENIED){
             val posLambda = {requestLocationPermission()}
             val negLambda = {}
-            Utils.showAlertDialog(this, getString(R.string.need_location_permission),
-            getString(R.string.location_permission_rationale),
-            posLambda, negLambda)
+            Utils.showAlertDialog(
+                this, getString(R.string.need_location_permission),
+                getString(R.string.location_permission_rationale),
+                posLambda, negLambda
+            )
         }
     }
 
@@ -147,11 +151,17 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
     }
 
     fun requestLocationPermission(){
-        ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1)
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+            1
+        )
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>,
-                                            grantResults: IntArray) {
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<String>,
+        grantResults: IntArray
+    ) {
         when (requestCode) {
             1 -> {
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -177,5 +187,26 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
 
     override fun onBackPressed() {
         // disable backpress to prevent launching of system launcher TODO find better way!
+        sheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+    }
+
+    /*override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        sheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+    }*/
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (event.action == MotionEvent.ACTION_DOWN) {
+            if (sheetBehavior.getState() === BottomSheetBehavior.STATE_EXPANDED) {
+                val outRect = Rect()
+                binding.appListSheet.getGlobalVisibleRect(outRect)
+                if (!outRect.contains(
+                        event.rawX.toInt(),
+                        event.rawY.toInt()
+                    )
+                ) sheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED)
+            }
+        }
+        return super.dispatchTouchEvent(event)
     }
 }
