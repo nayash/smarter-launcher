@@ -94,7 +94,8 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
             }
 
             override fun onSlide(bottomSheet: View, slideOffset: Float) {
-
+                Log.v("test-onSlide", slideOffset.toString())
+                binding.rlPredApps.alpha = 1-slideOffset
             }
         })
         Utils.hideKeyboard(this)
