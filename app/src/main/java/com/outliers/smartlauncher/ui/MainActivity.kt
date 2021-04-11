@@ -136,7 +136,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         })
 
         Log.v("test-onCreate", "onCreate called")
-        displayNewSuggestions(viewModel.appList.take(8) as ArrayList<AppModel>)
+        displayNewSuggestions(viewModel.appList.take(7) as ArrayList<AppModel>)
     }
 
     fun searchApp(s: String) {
@@ -235,69 +235,6 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         return super.dispatchTouchEvent(event)
     }
 
-    /*fun displayNewSuggestions(apps: ArrayList<AppModel>) {
-        appPredViewGroup.removeAllViews()
-        val width =
-            Resources.getSystem().displayMetrics.widthPixels*//* -
-                    2 * Utils.convertDpToPixel(resources.getDimension(R.dimen.margin_default))*//*
-        // var appIconDim = Utils.convertDpToPixel(resources.getDimension(R.dimen.app_icon_dim))
-        val appsPerRow = resources.getInteger(R.integer.app_per_row)
-        // var horizontalSpace = (width - appIconDim * appsPerRow) / (appsPerRow - 1)
-        //if(horizontalSpace < 20){
-            val block = width / appsPerRow
-            val appIconDim = (0.8 * block).toFloat()
-            var horizontalSpace = block - appIconDim
-        //}
-        val verticalSpace = Utils.convertDpToPixel(resources.getDimension(R.dimen.app_vertical_space))
-
-        Log.d("test-predDraw", "width: $width, iconDim: $appIconDim, hs: $horizontalSpace, " +
-                "vs: $verticalSpace")
-
-        var prevView: View? = null
-        var belowId: Int? = null
-        for ((idx: Int, appModel: AppModel) in apps.withIndex()) {
-            val appView: View = layoutInflater.inflate(R.layout.item_app, null)
-            val layoutParams = RelativeLayout.LayoutParams(
-                appIconDim.toInt(),
-                RelativeLayout.LayoutParams.WRAP_CONTENT
-            )
-            val col = (idx % appsPerRow)
-            val row = idx / appsPerRow
-            layoutParams.leftMargin = (horizontalSpace/2).toInt()
-            layoutParams.rightMargin = (horizontalSpace/2).toInt()
-            prevView?.let { layoutParams.addRule(RelativeLayout.RIGHT_OF, it.id) }
-
-            if(row > 0) {
-                layoutParams.topMargin = ((verticalSpace + appIconDim) * row).toInt()
-                // layoutParams.bottomMargin = (verticalSpace / 2).toInt()
-                // belowId?.let { layoutParams.addRule(RelativeLayout.BELOW, it)
-                // Log.v("test-below", "view below id=$it")}
-            }
-
-            appView.findViewById<ImageView>(R.id.iv_app).setImageDrawable(appModel.appIcon)
-            appView.findViewById<TextView>(R.id.tv_app_name).visibility = View.GONE
-
-            appView.setOnClickListener {
-                startActivity(appModel.launchIntent)
-            }
-
-            Log.d("test-predDraw", "app: ${appModel.appName}, idx: $idx, row: $row, col: $col, " +
-                    "lm: ${((horizontalSpace + appIconDim) * col).toInt()}" +
-                    ", tm: ${((verticalSpace + appIconDim) * row).toInt()}" +
-                    ", $prevView")
-
-            appView.id = idx+1
-            appView.layoutParams = layoutParams
-            appPredViewGroup.addView(appView)
-            prevView = appView
-            if(col == appsPerRow-1){
-                belowId = appView.id
-                Log.v("test-belowId", "idx: $idx, row: $row, col: $col, belowId: $belowId")
-            }
-        }
-        appPredViewGroup.invalidate()
-    }*/
-
     fun displayNewSuggestions(apps: ArrayList<AppModel>) {
         appPredViewGroup.removeAllViews()
         val width =
@@ -342,9 +279,16 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
             }
             tableRow?.addView(appView)
 
-            if(col == appsPerRow-1)
+            if(col == appsPerRow-1) {
                 appPredViewGroup.addView(tableRow)
+                tableRow = null
+            }
         }
+
+        if(tableRow != null){
+            appPredViewGroup.addView(tableRow)
+        }
+
         appPredViewGroup.invalidate()
     }
 
