@@ -209,6 +209,10 @@ class SmartLauncherRoot private constructor(val context: Context) {
         return launchVec
     }
 
+    fun notifyNewSuggestions(){
+        appSuggestionsLiveData.value = appSuggestions
+    }
+
     fun refreshAppList(){
         appModels.clear()
         allInstalledApps

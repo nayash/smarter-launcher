@@ -8,6 +8,7 @@ import android.content.DialogInterface
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ApplicationInfo
+import android.content.res.Resources
 import android.location.LocationManager
 import android.media.AudioManager
 import android.net.ConnectivityManager
@@ -16,6 +17,7 @@ import android.os.BatteryManager
 import android.os.Build
 import android.provider.Settings
 import android.text.TextUtils
+import android.util.DisplayMetrics
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.RotateAnimation
@@ -43,7 +45,7 @@ object Utils {
         return text != null && !text.trim { it <= ' ' }.isEmpty()
     }
 
-    fun rotateView(view: View, from: Float, to: Float, duration: Long = 200){
+    fun rotateView(view: View, from: Float, to: Float, duration: Long = 200) {
         // not working as expected. needs work.
         val rotateAnim = RotateAnimation(0f, 180f, 0.5f, 0.5f)
         rotateAnim.duration = duration
@@ -64,21 +66,21 @@ object Utils {
         imm.hideSoftInputFromWindow(view.windowToken, 0)
     }
 
-    fun isTodayWeekend(): Boolean{
+    fun isTodayWeekend(): Boolean {
         val c = Calendar.getInstance()
         return c.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY ||
                 c.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY
     }
 
-    fun isHourAM(hourOfDay: Int): Boolean{
+    fun isHourAM(hourOfDay: Int): Boolean {
         return hourOfDay < 12
     }
 
-    fun getDayOfMonth(): Int{
+    fun getDayOfMonth(): Int {
         return Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
     }
 
-    fun getHourOfDay(): Int{
+    fun getHourOfDay(): Int {
         return Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
     }
 
@@ -94,15 +96,15 @@ object Utils {
         return audioManager!!.isWiredHeadsetOn
     }
 
-    fun isHeadsetConnected(context: Context): Boolean{ // either BT or wired
+    fun isHeadsetConnected(context: Context): Boolean { // either BT or wired
         return isBluetoothHeadsetConnected() || isWiredHeadsetConnected(context)
     }
 
-    fun l2Distance(vec1: RealVector, vec2: RealVector): Double{
+    fun l2Distance(vec1: RealVector, vec2: RealVector): Double {
         return vec1.getDistance(vec2)
     }
 
-    fun isCharging(context: Context): Boolean{
+    fun isCharging(context: Context): Boolean {
         val batteryStatus: Intent? = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { ifilter ->
             context.registerReceiver(null, ifilter)
         }
@@ -113,7 +115,7 @@ object Utils {
         return isCharging
     }
 
-    fun isWifiConnected(context: Context): Boolean{
+    fun isWifiConnected(context: Context): Boolean {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager?
         val ni = cm!!.activeNetworkInfo
         if (ni != null && ni.type == ConnectivityManager.TYPE_WIFI) {
@@ -122,7 +124,7 @@ object Utils {
         return false
     }
 
-    fun isMobileDataConnected(context: Context): Boolean{
+    fun isMobileDataConnected(context: Context): Boolean {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager?
         val ni = cm!!.activeNetworkInfo
         if (ni != null && ni.type == ConnectivityManager.TYPE_MOBILE) {
@@ -167,7 +169,7 @@ object Utils {
         return result
     }
 
-    fun getBatteryLevel(context: Context): Float?{
+    fun getBatteryLevel(context: Context): Float? {
         val batteryStatus: Intent? = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { ifilter ->
             context.registerReceiver(null, ifilter)
         }
@@ -185,7 +187,7 @@ object Utils {
         negativeCallback: () -> Unit,
         positiveAction: String = context.getString(android.R.string.ok),
         negativeAction: String = context.getString(android.R.string.cancel)
-    ){
+    ) {
         val builder: AlertDialog.Builder = AlertDialog.Builder(context)
         builder.setTitle(title)
         builder.setMessage(message)
@@ -201,7 +203,7 @@ object Utils {
     }
 
     fun isLocationEnabled(context: Context): Boolean {
-        if(Build.VERSION.SDK_INT < 28) {
+        if (Build.VERSION.SDK_INT < 28) {
             var locationMode = 0
             val locationProviders: String
             return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
@@ -222,10 +224,18 @@ object Utils {
                 )
                 !TextUtils.isEmpty(locationProviders)
             }
-        }else {
+        } else {
             val locationManager: LocationManager =
                 context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
             return locationManager.isLocationEnabled
         }
+    }
+
+    fun convertDpToPixel(dp: Float): Float {
+        return dp * (Resources.getSystem().displayMetrics.densityDpi.toFloat() / DisplayMetrics.DENSITY_DEFAULT)
+    }
+
+    fun convertPixelsToDp(px: Float): Float {
+        return px / (Resources.getSystem().displayMetrics.densityDpi.toFloat() / DisplayMetrics.DENSITY_DEFAULT)
     }
 }

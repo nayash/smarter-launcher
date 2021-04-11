@@ -3,16 +3,17 @@ package com.outliers.smartlauncher.ui
 import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.pm.PackageManager
+import android.content.res.Resources
 import android.graphics.Rect
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
+import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
-import android.widget.EditText
-import android.widget.ImageView
-import android.widget.Toast
+import android.view.ViewGroup
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -28,6 +29,7 @@ import com.outliers.smartlauncher.core.SmartLauncherApplication
 import com.outliers.smartlauncher.databinding.ActivityMainBinding
 import com.outliers.smartlauncher.models.AppModel
 import com.outliers.smartlauncher.utils.Utils
+import java.util.*
 
 
 class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
@@ -36,6 +38,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
     val viewModel by lazy { ViewModelProviders.of(this).get(MainViewModel::class.java) }
     lateinit var adapter: AppsRVAdapter
     val sheetBehavior by lazy { BottomSheetBehavior.from(binding.appListSheet) }
+    val appPredViewGroup by lazy { binding.rlPredApps }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,10 +62,11 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
         val imageView = binding.appListSheet.findViewById<ImageView>(R.id.iv_expand)
         val rvApps = binding.appListSheet.findViewById<RecyclerView>(R.id.rv_apps)
         adapter = AppsRVAdapter(viewModel.appList, this, this)
-        rvApps.layoutManager = GridLayoutManager(this, 4)
+        val appsPerRow = resources.getInteger(R.integer.app_per_row)
+        rvApps.layoutManager = GridLayoutManager(this, appsPerRow)
         rvApps.addItemDecoration(
             RVItemDecoration(
-                4,
+                appsPerRow,
                 getResources().getDimensionPixelSize(R.dimen.margin_default), true
             )
         )
@@ -110,9 +114,15 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
                 if (it.value != bool)
                     it.value = bool
                 Log.v("test-refreshObs", "${it.value}, $bool")
-            }) }
+            })
+        }
+
+        viewModel.smartLauncherRoot?.appSuggestionsLiveData?.observe(this, {
+            displayNewSuggestions(it)
+        })
 
         Log.v("test-onCreate", "onCreate called")
+        displayNewSuggestions(viewModel.appList.take(8) as ArrayList<AppModel>)
     }
 
     fun searchApp(s: String) {
@@ -124,7 +134,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
         try {
             appModel.launchIntent?.let { startActivity(it) }
             viewModel.onAppClicked(appModel)
-        }catch (ex: ActivityNotFoundException){
+        } catch (ex: ActivityNotFoundException) {
             Toast.makeText(this, getString(R.string.app_not_found), Toast.LENGTH_SHORT).show()
         }
     }
@@ -133,9 +143,10 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
         super.onStart()
         Log.v("test-onStart", "onStart called")
 
-        if(ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-            == PackageManager.PERMISSION_DENIED){
-            val posLambda = {requestLocationPermission()}
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+            == PackageManager.PERMISSION_DENIED
+        ) {
+            val posLambda = { requestLocationPermission() }
             val negLambda = {}
             Utils.showAlertDialog(
                 this, getString(R.string.need_location_permission),
@@ -150,7 +161,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
         Log.v("test-onStop", "onStop called")
     }
 
-    fun requestLocationPermission(){
+    fun requestLocationPermission() {
         ActivityCompat.requestPermissions(
             this,
             arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
@@ -197,7 +208,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
         if (event.action == MotionEvent.ACTION_DOWN) {
-            if (sheetBehavior.getState() === BottomSheetBehavior.STATE_EXPANDED) {
+            if (sheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
                 val outRect = Rect()
                 binding.appListSheet.getGlobalVisibleRect(outRect)
                 if (!outRect.contains(
@@ -208,5 +219,118 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
             }
         }
         return super.dispatchTouchEvent(event)
+    }
+
+    /*fun displayNewSuggestions(apps: ArrayList<AppModel>) {
+        appPredViewGroup.removeAllViews()
+        val width =
+            Resources.getSystem().displayMetrics.widthPixels*//* -
+                    2 * Utils.convertDpToPixel(resources.getDimension(R.dimen.margin_default))*//*
+        // var appIconDim = Utils.convertDpToPixel(resources.getDimension(R.dimen.app_icon_dim))
+        val appsPerRow = resources.getInteger(R.integer.app_per_row)
+        // var horizontalSpace = (width - appIconDim * appsPerRow) / (appsPerRow - 1)
+        //if(horizontalSpace < 20){
+            val block = width / appsPerRow
+            val appIconDim = (0.8 * block).toFloat()
+            var horizontalSpace = block - appIconDim
+        //}
+        val verticalSpace = Utils.convertDpToPixel(resources.getDimension(R.dimen.app_vertical_space))
+
+        Log.d("test-predDraw", "width: $width, iconDim: $appIconDim, hs: $horizontalSpace, " +
+                "vs: $verticalSpace")
+
+        var prevView: View? = null
+        var belowId: Int? = null
+        for ((idx: Int, appModel: AppModel) in apps.withIndex()) {
+            val appView: View = layoutInflater.inflate(R.layout.item_app, null)
+            val layoutParams = RelativeLayout.LayoutParams(
+                appIconDim.toInt(),
+                RelativeLayout.LayoutParams.WRAP_CONTENT
+            )
+            val col = (idx % appsPerRow)
+            val row = idx / appsPerRow
+            layoutParams.leftMargin = (horizontalSpace/2).toInt()
+            layoutParams.rightMargin = (horizontalSpace/2).toInt()
+            prevView?.let { layoutParams.addRule(RelativeLayout.RIGHT_OF, it.id) }
+
+            if(row > 0) {
+                layoutParams.topMargin = ((verticalSpace + appIconDim) * row).toInt()
+                // layoutParams.bottomMargin = (verticalSpace / 2).toInt()
+                // belowId?.let { layoutParams.addRule(RelativeLayout.BELOW, it)
+                // Log.v("test-below", "view below id=$it")}
+            }
+
+            appView.findViewById<ImageView>(R.id.iv_app).setImageDrawable(appModel.appIcon)
+            appView.findViewById<TextView>(R.id.tv_app_name).visibility = View.GONE
+
+            appView.setOnClickListener {
+                startActivity(appModel.launchIntent)
+            }
+
+            Log.d("test-predDraw", "app: ${appModel.appName}, idx: $idx, row: $row, col: $col, " +
+                    "lm: ${((horizontalSpace + appIconDim) * col).toInt()}" +
+                    ", tm: ${((verticalSpace + appIconDim) * row).toInt()}" +
+                    ", $prevView")
+
+            appView.id = idx+1
+            appView.layoutParams = layoutParams
+            appPredViewGroup.addView(appView)
+            prevView = appView
+            if(col == appsPerRow-1){
+                belowId = appView.id
+                Log.v("test-belowId", "idx: $idx, row: $row, col: $col, belowId: $belowId")
+            }
+        }
+        appPredViewGroup.invalidate()
+    }*/
+
+    fun displayNewSuggestions(apps: ArrayList<AppModel>) {
+        appPredViewGroup.removeAllViews()
+        val width =
+            Resources.getSystem().displayMetrics.widthPixels/* -
+                    2 * Utils.convertDpToPixel(resources.getDimension(R.dimen.margin_default))*/
+        // var appIconDim = Utils.convertDpToPixel(resources.getDimension(R.dimen.app_icon_dim))
+        val appsPerRow = resources.getInteger(R.integer.app_per_row)
+        // var horizontalSpace = (width - appIconDim * appsPerRow) / (appsPerRow - 1)
+        //if(horizontalSpace < 20){
+        val block = width / appsPerRow
+        val appIconDim = (0.8 * block).toFloat()
+        var horizontalSpace = block - appIconDim
+        //}
+        val verticalSpace = Utils.convertDpToPixel(resources.getDimension(R.dimen.app_vertical_space))
+
+        Log.d("test-predDraw", "width: $width, iconDim: $appIconDim, hs: $horizontalSpace, " +
+                "vs: $verticalSpace")
+
+        var prevView: View? = null
+        var belowId: Int? = null
+        var tableRow: TableRow? = null
+        for ((idx: Int, appModel: AppModel) in apps.withIndex()) {
+            val appView: View = layoutInflater.inflate(R.layout.item_app, null)
+            val col = (idx % appsPerRow)
+            val row = idx / appsPerRow
+            if(col == 0) {
+                tableRow = TableRow(this)
+                val layoutParams = TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT,
+                    TableLayout.LayoutParams.WRAP_CONTENT, 1f)
+                tableRow.gravity = Gravity.CENTER
+                tableRow.weightSum = appsPerRow.toFloat()
+                tableRow?.layoutParams = layoutParams
+            }
+            appView.findViewById<ImageView>(R.id.iv_app).setImageDrawable(appModel.appIcon)
+            appView.findViewById<TextView>(R.id.tv_app_name).visibility = View.GONE
+            val trLayoutParams = TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT,
+                TableRow.LayoutParams.WRAP_CONTENT, 1f)
+            trLayoutParams.setMargins(0,(verticalSpace/2).toInt(), 0, (verticalSpace/2).toInt())
+            appView.layoutParams = trLayoutParams
+            appView.setOnClickListener {
+                startActivity(appModel.launchIntent)
+            }
+            tableRow?.addView(appView)
+
+            if(col == appsPerRow-1)
+                appPredViewGroup.addView(tableRow)
+        }
+        appPredViewGroup.invalidate()
     }
 }
