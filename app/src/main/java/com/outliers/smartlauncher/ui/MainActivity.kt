@@ -32,19 +32,23 @@ import com.outliers.smartlauncher.utils.Utils
 import java.util.*
 
 
-class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
+class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnClickListener {
 
     val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
     val viewModel by lazy { ViewModelProviders.of(this).get(MainViewModel::class.java) }
     lateinit var adapter: AppsRVAdapter
     val sheetBehavior by lazy { BottomSheetBehavior.from(binding.appListSheet) }
     val appPredViewGroup by lazy { binding.rlPredApps }
+    lateinit var etSearch: EditText
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
 
-        val etSearch: EditText = binding.appListSheet.findViewById(R.id.et_search)
+        etSearch = binding.appListSheet.findViewById(R.id.et_search)
+        val ivSearchSearch = binding.appListSheet.findViewById<ImageView>(R.id.iv_right_search)
+        val ivSearchClose = binding.appListSheet.findViewById<ImageView>(R.id.iv_right_cross)
+        ivSearchClose.setOnClickListener(this)
         etSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
 
@@ -55,6 +59,15 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
             }
 
             override fun afterTextChanged(s: Editable?) {
+                if(s != null && s?.length > 0){
+                    // show cross
+                    ivSearchSearch.visibility = View.GONE
+                    ivSearchClose.visibility = View.VISIBLE
+                }else{
+                    // search icon
+                    ivSearchSearch.visibility = View.VISIBLE
+                    ivSearchClose.visibility = View.GONE
+                }
                 searchApp(s.toString())
             }
         })
@@ -333,5 +346,12 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter {
                 appPredViewGroup.addView(tableRow)
         }
         appPredViewGroup.invalidate()
+    }
+
+    override fun onClick(v: View?) {
+        val id = v?.id
+        when(id){
+            R.id.iv_right_cross -> etSearch.setText("")
+        }
     }
 }

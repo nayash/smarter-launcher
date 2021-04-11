@@ -7,7 +7,7 @@
     app:layout_behavior="@string/bottom_sheet_behavior"
     app:behavior_hideable="false"
     app:behavior_peekHeight="35dp"
-    android:background="@color/translucent_white">
+    android:background="@color/translucent_black">
 
     <ImageView
         android:id="@+id/iv_expand"
@@ -40,14 +40,27 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@null"
-            android:drawableEnd="@drawable/baseline_search_24"
-            app:drawableTint="@color/white"
-            android:drawablePadding="5dp"
             style="@style/TextBodyLargeWhite"
             tools:text="Hello World"
             android:layout_marginStart="@dimen/margin_default"
             android:inputType="text" />
 
+        <ImageView
+            android:id="@+id/iv_right_search"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:src="@drawable/baseline_search_24"
+            android:layout_gravity="right|center_vertical"
+            app:tint="@color/white"/>
+
+        <ImageView
+            android:id="@+id/iv_right_cross"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:src="@drawable/baseline_close_24"
+            android:layout_gravity="right|center_vertical"
+            app:tint="@color/white"
+            android:visibility="gone"/>
     </FrameLayout>
 
     <androidx.recyclerview.widget.RecyclerView
