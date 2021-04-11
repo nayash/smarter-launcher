@@ -38,8 +38,9 @@ class SmartLauncherRoot private constructor(val context: Context) {
     val appModels: ArrayList<AppModel> = ArrayList()
     val appToIdMap: ArrayMap<String, Int> = ArrayMap()  // package to hashcode map
     val appToIdxMap: ArrayMap<String, Int> = ArrayMap()  // package to index map for ATF construction
+    val idToApp: ArrayMap<Int, String> = ArrayMap()  // reverse Map of appToIdMap
     val launchSequence: ArrayList<String> = ArrayList(WINDOW_SIZE)  // sequence of last 'window size' package names
-    val launchHistory: HashMap<Int, RealVector> = HashMap()
+    val launchHistory: HashMap<Int, RealVector> = HashMap()  //
     val launcherPref = context.getSharedPreferences(Constants.PREF_NAME, Context.MODE_PRIVATE)
     val appSuggestions = ArrayList<AppModel>(APP_SUGGESTION_COUNT)
     val appSuggestionsLiveData: MutableLiveData<ArrayList<AppModel>> = MutableLiveData()
@@ -52,9 +53,10 @@ class SmartLauncherRoot private constructor(val context: Context) {
             return outliersLauncherRoot
         }
         const val WINDOW_SIZE = 3
-        const val APP_SUGGESTION_COUNT = 5
+        const val APP_SUGGESTION_COUNT = 8
         const val EXPLICIT_FEATURES_COUNT = 11
         const val APP_USAGE_DECAY_RATE = 0.5
+        const val EPSILON = 0.1
     }
 
     init {
@@ -97,6 +99,7 @@ class SmartLauncherRoot private constructor(val context: Context) {
         for((idx: Int, app: AppModel) in allInstalledApps.withIndex()){
             appToIdMap[app.packageName] = app.packageName.hashCode()
             appToIdxMap[app.packageName] = idx
+            idToApp[appToIdMap[app.packageName]] = app.packageName
         }
     }
 
@@ -115,7 +118,41 @@ class SmartLauncherRoot private constructor(val context: Context) {
     suspend fun processAppSuggestion(packageName: String){
         withContext(Dispatchers.IO) {
             val launchVec = genAppLaunchVec(packageName)
+            // TODO find KNN
+            appSuggestions.clear()
+            appSuggestions.addAll(findKNN(launchVec))
+            notifyNewSuggestions()
+            // once all calculations and prediction is done, store the launchVec as history,
+            // to use it for future predictions
+            appToIdMap[packageName]?.let { launchHistory.put(it, launchVec) }
+            Log.v("test-launchHistorySize", launchHistory.size.toString())
         }
+    }
+
+    private suspend fun findKNN(launchVec: ArrayRealVector): ArrayList<AppModel>{
+        val appPreds = ArrayList<AppModel>()
+        val appScoresMap = HashMap<String, Double>()  // appPackage to score mapping, to later apply toSrotedMap
+        for((appId, lVecHist) in launchHistory){
+            val distance = lVecHist.getDistance(launchVec)
+            val similarity = 1/(distance + EPSILON)
+
+            // appToIdxMap[idToApp[appId]]?.let { appScoresMap[it] += similarity }
+            idToApp[appId]?.let{ packageName->
+                var prevScore = appScoresMap[packageName] ?: 0.0
+                prevScore += similarity
+                appScoresMap[packageName] = prevScore
+            }
+        }
+        var breaker = 0
+        for((packageName, score) in appScoresMap.toSortedMap()){
+            Utils.getAppByPackage(allInstalledApps, packageName)?.let { appPreds.add(it) }
+            breaker++
+            Log.v("test-app-predictions", "$packageName-->$score")
+            if(breaker > APP_SUGGESTION_COUNT)
+                break
+        }
+
+        return appPreds
     }
 
     private suspend fun genAppLaunchVec(packageName: String): ArrayRealVector{

@@ -107,11 +107,10 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
             }
 
             override fun onSlide(bottomSheet: View, slideOffset: Float) {
-                Log.v("test-onSlide", slideOffset.toString())
                 binding.rlPredApps.alpha = 1-slideOffset
             }
         })
-        Utils.hideKeyboard(this)
+
         Log.v(
             "test", Utils.isBluetoothHeadsetConnected().toString() + ", " +
                     Utils.isWiredHeadsetConnected(this) +
@@ -136,7 +135,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         })
 
         Log.v("test-onCreate", "onCreate called")
-        displayNewSuggestions(viewModel.appList.take(7) as ArrayList<AppModel>)
+        // displayNewSuggestions(viewModel.appList.take(7) as ArrayList<AppModel>)
     }
 
     fun searchApp(s: String) {
@@ -236,6 +235,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
     }
 
     fun displayNewSuggestions(apps: ArrayList<AppModel>) {
+        // Or we could use a RecyclerView + same Adapter
         appPredViewGroup.removeAllViews()
         val width =
             Resources.getSystem().displayMetrics.widthPixels/* -

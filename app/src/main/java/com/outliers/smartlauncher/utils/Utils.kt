@@ -23,8 +23,10 @@ import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.RotateAnimation
 import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.app.AlertDialog
+import com.outliers.smartlauncher.models.AppModel
 import org.apache.commons.math3.linear.RealVector
 import java.util.*
+import kotlin.collections.ArrayList
 
 
 object Utils {
@@ -237,5 +239,13 @@ object Utils {
 
     fun convertPixelsToDp(px: Float): Float {
         return px / (Resources.getSystem().displayMetrics.densityDpi.toFloat() / DisplayMetrics.DENSITY_DEFAULT)
+    }
+
+    fun getAppByPackage(appsList: ArrayList<AppModel>, packageName: String): AppModel?{
+        for(appModel in appsList) {
+            if(appModel.packageName.equals(packageName, true))
+                return appModel
+        }
+        return null
     }
 }
