@@ -117,6 +117,7 @@ class SmartLauncherRoot private constructor(val context: Context) {
 
     suspend fun processAppSuggestion(packageName: String){
         withContext(Dispatchers.IO) {
+            val stime = System.currentTimeMillis()
             val launchVec = genAppLaunchVec(packageName)
             // TODO find KNN
             appSuggestions.clear()
@@ -126,12 +127,14 @@ class SmartLauncherRoot private constructor(val context: Context) {
             // to use it for future predictions
             appToIdMap[packageName]?.let { launchHistory.put(it, launchVec) }
             Log.v("test-launchHistorySize", launchHistory.size.toString())
+            val duration = (System.currentTimeMillis()-stime)/1000
+            Log.d("test-processTime", "processing duration = $duration secs")
         }
     }
 
     private suspend fun findKNN(launchVec: ArrayRealVector): ArrayList<AppModel>{
         val appPreds = ArrayList<AppModel>()
-        val appScoresMap = HashMap<String, Double>()  // appPackage to score mapping, to later apply toSrotedMap
+        var appScoresMap = HashMap<String, Double>()  // appPackage to score mapping, to later apply toSrotedMap
         for((appId, lVecHist) in launchHistory){
             val distance = lVecHist.getDistance(launchVec)
             val similarity = 1/(distance + EPSILON)
@@ -144,14 +147,16 @@ class SmartLauncherRoot private constructor(val context: Context) {
             }
         }
         var breaker = 0
-        for((packageName, score) in appScoresMap.toSortedMap()){
+        Log.v("test-appScores", appScoresMap.toString())
+        appScoresMap = appScoresMap.entries.sortedBy { -it.value }.associate { it.toPair() } as HashMap<String, Double>
+        Log.v("test-appScoreSorted", appScoresMap.toString())
+        for((packageName, score) in appScoresMap){ // TODO IMP!!!! this is wrong, sort by value not key
             Utils.getAppByPackage(allInstalledApps, packageName)?.let { appPreds.add(it) }
             breaker++
             Log.v("test-app-predictions", "$packageName-->$score")
             if(breaker > APP_SUGGESTION_COUNT)
                 break
         }
-
         return appPreds
     }
 
@@ -189,7 +194,7 @@ class SmartLauncherRoot private constructor(val context: Context) {
                     null
                 )
                     .addOnSuccessListener { location ->
-                        Log.d("test-location", location.toString())
+                        Log.d("test-location", location?.toString()+",")
                         location?.let {
                             launchVec.setEntry(featureIdx++, location.latitude / 360.0)
                             launchVec.setEntry(featureIdx++, location.longitude / 360.0)
@@ -247,7 +252,7 @@ class SmartLauncherRoot private constructor(val context: Context) {
     }
 
     fun notifyNewSuggestions(){
-        appSuggestionsLiveData.value = appSuggestions
+        appSuggestionsLiveData.postValue(appSuggestions)
     }
 
     fun refreshAppList(){
