@@ -25,6 +25,8 @@ import android.view.animation.RotateAnimation
 import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.app.AlertDialog
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.reflect.TypeToken
 import com.outliers.smartlauncher.BuildConfig
 import com.outliers.smartlauncher.models.AppModel
 import kotlinx.coroutines.Dispatchers
@@ -326,7 +328,7 @@ object Utils {
                 val temp = `is`.readObject()
                 `is`.close()
                 fis.close()
-
+                val builder: GsonBuilder = GsonBuilder()
                 obj = Gson().fromJson(temp.toString(), T::class.java)
             }
         }catch (ex: Exception){

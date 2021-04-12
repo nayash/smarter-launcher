@@ -27,6 +27,7 @@ import org.apache.commons.math3.linear.RealVector
 import java.io.File
 import java.io.FileOutputStream
 import java.io.ObjectOutputStream
+import java.lang.Exception
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
@@ -335,6 +336,11 @@ class SmartLauncherRoot private constructor(val context: Context) {
         val file = File(Utils.getAppFolderInternal(context),
             Constants.LAUNCH_HISTORY_SAVE_FILE)
         val temp = Utils.readFromFile<LinkedMap<Int, ArrayRealVector>>(context, file.absolutePath)
+        try {
+            Log.v("test-loadLH", "${temp?.firstKey()?.javaClass}")
+        }catch (ex: Exception){
+            Log.e("test-key", Log.getStackTraceString(ex))
+        }
         if(temp != null)
             launchHistory = temp
     }

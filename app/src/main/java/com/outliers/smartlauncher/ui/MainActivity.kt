@@ -8,6 +8,7 @@ import android.content.res.Resources
 import android.graphics.Rect
 import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
@@ -167,6 +168,18 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
             viewModel.onAppClicked(appModel)
         } catch (ex: ActivityNotFoundException) {
             Toast.makeText(this, getString(R.string.app_not_found), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onItemLongPress(view: View, appModel: AppModel, extras: Bundle?) {
+        val packageName: String = appModel.packageName
+        val popupMenu = PopupMenu(this, view)
+        popupMenu.menuInflater.inflate(R.menu.app_popup, popupMenu.menu)
+        popupMenu.setOnMenuItemClickListener {
+            when(it.itemId){
+                R.id.menu_app_options -> startAppDetailsActivity(packageName)
+            }
+            return@setOnMenuItemClickListener true
         }
     }
 
@@ -368,6 +381,20 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         } catch (e: Exception) {
             //Log.e("AttachError", "E", e);
             Toast.makeText(this, e.message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun startAppDetailsActivity(packageName: String){
+        try {
+            //Open the specific App Info page:
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+            intent.data = Uri.parse("package:$packageName")
+            startActivity(intent)
+        } catch (e: ActivityNotFoundException) {
+            //e.printStackTrace();
+            //Open the generic Apps page:
+            val intent = Intent(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS)
+            startActivity(intent)
         }
     }
 }

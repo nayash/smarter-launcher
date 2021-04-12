@@ -17,6 +17,7 @@ import java.util.*
 class AppsRVAdapter(var appModels: ArrayList<AppModel>, var context: Context, private val parent: IAppsRVAdapter) : RecyclerView.Adapter<AppsViewHolder>() {
     interface IAppsRVAdapter {
         fun onItemClick(position: Int, appModel: AppModel, extras: Bundle?)
+        fun onItemLongPress(view: View, appModel: AppModel, extras: Bundle?)
     }
 
     inner class AppsViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -27,6 +28,10 @@ class AppsRVAdapter(var appModels: ArrayList<AppModel>, var context: Context, pr
             appIcon = view.findViewById(R.id.iv_app)
             tvAppName = view.findViewById(R.id.tv_app_name)
             view.setOnClickListener { parent.onItemClick(layoutPosition, appModels[layoutPosition], null) }
+            view.setOnLongClickListener {
+                parent.onItemLongPress(it, appModels[layoutPosition], null)
+                return@setOnLongClickListener true
+            }
         }
     }
 
