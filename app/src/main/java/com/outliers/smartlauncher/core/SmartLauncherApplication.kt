@@ -59,11 +59,14 @@ class SmartLauncherApplication: Application() {
 
         when(level){
             TRIM_MEMORY_RUNNING_LOW -> cleanAndBackUp()
+            TRIM_MEMORY_BACKGROUND -> cleanAndBackUp()
+            TRIM_MEMORY_UI_HIDDEN -> cleanAndBackUp()
         }
     }
 
     fun cleanAndBackUp(){
         // TODO resource/cache cleanup, if any
+        smartLauncherRoot?.saveState()
     }
 
     private val appInstallBR = object : BroadcastReceiver(){

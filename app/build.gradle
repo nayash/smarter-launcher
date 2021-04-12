@@ -57,7 +57,6 @@ dependencies {
 
     //firebase
     implementation platform('com.google.firebase:firebase-bom:27.0.0')
-
     implementation 'com.google.firebase:firebase-analytics-ktx'
 
     //LifeCycle
@@ -67,9 +66,12 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-livedata-ktx:$lifecycle_version"
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version"
 
+    //apache
     implementation 'org.apache.commons:commons-math3:3.6.1'
     implementation 'org.apache.commons:commons-collections4:4.4'
 
     implementation 'com.google.android.gms:play-services-location:18.0.0'
     // implementation 'org.jetbrains:kotlin-numpy:0.1.5'
+
+    implementation 'com.google.code.gson:gson:2.8.6'
 }

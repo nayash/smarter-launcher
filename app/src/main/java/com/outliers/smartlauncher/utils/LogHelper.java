@@ -43,7 +43,7 @@ public class LogHelper {
 
     public enum LOG_LEVEL {INFO, WARNING, ERROR, CRITICAL}
 
-    static LogHelper logHelper;
+    private static LogHelper logHelper;
     private File logFile;
     private LinkedList<String> llPendingLogs;
     private ExecutorService executorService;
@@ -153,7 +153,7 @@ public class LogHelper {
         }
     }
 
-    private void addLogToQueue(String logText, LOG_LEVEL level, String callingComponentName){
+    public void addLogToQueue(String logText, LOG_LEVEL level, String callingComponentName){
         if(logText == null || level == null) {
             //Log.e("addLogToQueue", "Parameters can't be null. Log skipped");
             return;
@@ -179,7 +179,7 @@ public class LogHelper {
 
         synchronized (lock) {
             if(BuildConfig.DEBUG)
-                Log.e("addLogToQueueMain", logText);
+                Log.e("test-addLogToQueueMain", logText);
             llPendingLogs.addLast(logText);
             //Log.e("addLogQ",llPendingLogs.size()+"");
             if (llPendingLogs.size() >= LOG_WRITE_BATCH_SIZE) {

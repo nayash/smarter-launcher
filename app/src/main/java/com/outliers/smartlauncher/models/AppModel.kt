@@ -9,6 +9,7 @@ import android.os.Parcel
 import android.os.Parcelable
 import android.util.Log
 import com.outliers.smartlauncher.utils.Utils.getApplicationName
+import java.io.Serializable
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap

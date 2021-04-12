@@ -2,13 +2,7 @@ package com.outliers.smartlauncher.core
 
 import android.Manifest
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.location.LocationManager
-import android.os.BatteryManager
-import android.service.autofill.FillEventHistory
 import android.util.Log
 import android.widget.Toast
 import androidx.collection.ArrayMap
@@ -30,11 +24,12 @@ import kotlinx.coroutines.channels.Channel
 import org.apache.commons.collections4.map.LinkedMap
 import org.apache.commons.math3.linear.ArrayRealVector
 import org.apache.commons.math3.linear.RealVector
-import java.lang.Exception
+import java.io.File
+import java.io.FileOutputStream
+import java.io.ObjectOutputStream
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
-import kotlin.collections.LinkedHashMap
 import kotlin.math.pow
 
 class SmartLauncherRoot private constructor(val context: Context) {
@@ -43,10 +38,10 @@ class SmartLauncherRoot private constructor(val context: Context) {
     val appToIdMap: ArrayMap<String, Int> = ArrayMap()  // package to hashcode map
     val appToIdxMap: ArrayMap<String, Int> = ArrayMap()  // package to index map for ATF construction
     val idToApp: ArrayMap<Int, String> = ArrayMap()  // reverse Map of appToIdMap
-    val launchSequence: ArrayList<String> = ArrayList(WINDOW_SIZE)  // sequence of last 'window size' package names
-    val launchHistory: LinkedMap<Int, RealVector> = LinkedMap()  //
+    var launchSequence: ArrayList<String> = ArrayList(WINDOW_SIZE)  // sequence of last 'window size' package names
+    var launchHistory: LinkedMap<Int, ArrayRealVector> = LinkedMap()  //
     val launcherPref = context.getSharedPreferences(Constants.PREF_NAME, Context.MODE_PRIVATE)
-    val appSuggestions = ArrayList<AppModel>(APP_SUGGESTION_COUNT)
+    var appSuggestions = ArrayList<AppModel>(APP_SUGGESTION_COUNT)
     val appSuggestionsLiveData: MutableLiveData<ArrayList<AppModel>> = MutableLiveData()
     val logHelper = LogHelper.getLogHelper(context)
 
@@ -67,14 +62,16 @@ class SmartLauncherRoot private constructor(val context: Context) {
     }
 
     init {
+        allInstalledApps
         initPackageToIdMap()
-        sizeTest()
+        // sizeTest()
+        loadState()
     }
 
     val allInstalledApps: ArrayList<AppModel>
         get() {  // TODO instead of querying installed apps all the time, implement install/uninstall listeners and update only in such events?
             if (appModels.size == 0) {
-                appModels.clear()
+                //allInstalledApps.clear()
                 appModels.addAll(
                     getAppModelsFromPackageInfoList(
                         context.packageManager.getInstalledPackages(0),
@@ -104,7 +101,7 @@ class SmartLauncherRoot private constructor(val context: Context) {
     }
 
     fun initPackageToIdMap(){
-        for((idx: Int, app: AppModel) in allInstalledApps.withIndex()){
+        for((idx: Int, app: AppModel) in appModels.withIndex()){
             appToIdMap[app.packageName] = app.packageName.hashCode()
             appToIdxMap[app.packageName] = idx
             idToApp[appToIdMap[app.packageName]] = app.packageName
@@ -133,6 +130,8 @@ class SmartLauncherRoot private constructor(val context: Context) {
             notifyNewSuggestions()
             // once all calculations and prediction is done, store the launchVec as history,
             // to use it for future predictions
+            if(appToIdMap[packageName] == null)
+                Log.e("test-packageNull", "$packageName --- ${appToIdxMap.size}, ${allInstalledApps.size}")
             appToIdMap[packageName]?.let { launchHistory.put(it, launchVec) }
             Log.v("test-launchHistorySize", launchHistory.size.toString())
             val duration = (System.currentTimeMillis()-stime)/1000
@@ -177,12 +176,12 @@ class SmartLauncherRoot private constructor(val context: Context) {
         // approach is to remove the appIdx from all launch vectors (for uninstall) and for new installations, add app to bottom of array
 
         val vecSize = EXPLICIT_FEATURES_COUNT + allInstalledApps.size
-        val launchVec: ArrayRealVector = ArrayRealVector(vecSize)
+        val launchVec = ArrayRealVector(vecSize)
         Log.v("test-genLVec", launchVec.dimension.toString())
         var featureIdx = 0
-        launchVec.setEntry(featureIdx++, Utils.getDayOfMonth()/31.0)
+        launchVec.setEntry(featureIdx++, Utils.getDayOfMonth() / 31.0)
         val hourOfDay = Utils.getHourOfDay()
-        launchVec.setEntry(featureIdx++, hourOfDay/24.0)
+        launchVec.setEntry(featureIdx++, hourOfDay / 24.0)
         val fusedLocationClient: FusedLocationProviderClient =
             LocationServices.getFusedLocationProviderClient(context)
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -202,13 +201,13 @@ class SmartLauncherRoot private constructor(val context: Context) {
                     null
                 )
                     .addOnSuccessListener { location ->
-                        Log.d("test-location", location?.toString()+",")
+                        Log.d("test-location", location?.toString() + ",")
                         location?.let {
                             launchVec.setEntry(featureIdx++, location.latitude / 360.0)
                             launchVec.setEntry(featureIdx++, location.longitude / 360.0)
                             Log.v("test-location", "offering 0")
-                            channel.offer(0)
                         }
+                        channel.offer(0)
                     }
                 channel.receive()
             }else {
@@ -250,8 +249,10 @@ class SmartLauncherRoot private constructor(val context: Context) {
             val appIdx = appToIdxMap[appPackage]
             val appValue = APP_USAGE_DECAY_RATE.pow(i)
             // TODO convert this to nullable expression. Package should be availabe in hashmap if not it should crash
-            launchVec.setEntry(EXPLICIT_FEATURES_COUNT+ appIdx!!, appValue)
-            Log.d("test-ATF-val", "$packageName, $appIdx+$EXPLICIT_FEATURES_COUNT, $appValue")
+            if(appIdx == null)
+                Log.e("test-packageNull", "$appPackage --- ${appToIdxMap.size}, ${allInstalledApps.size}")
+            launchVec.setEntry(EXPLICIT_FEATURES_COUNT + appIdx!!, appValue)  // TODO IMP!!! crash here: DefaultDispatcher-worker-3 Process: com.outliers.smartlauncher, PID: 15033 java.lang.NullPointerException
+            Log.d("test-ATF-val", "$packageName, $appIdx, $EXPLICIT_FEATURES_COUNT, $appValue")
         }
         Log.v("test-appToIdx", appToIdxMap.toString())
         Log.v("test-lvec", launchVec.toString())
@@ -275,5 +276,82 @@ class SmartLauncherRoot private constructor(val context: Context) {
         Log.d("test-sizeTestB4", launchHistory.size.toString())
         JUtils.dropFirstKey(launchHistory)  // wrapper Java method to avoid "unresolved overload ambiguity"
         Log.d("test-sizeTestAfter", launchHistory.size.toString())
+    }
+
+    fun saveState(){
+        GlobalScope.launch {
+            saveLaunchSequence()
+            saveLaunchHistory()
+            savePreds()
+
+            LogHelper.getLogHelper(context).addLogToQueue("saveState called: " +
+                    "launchSeq=${launchSequence.size}" +
+                    ", histSize=${launchHistory.size}, preds={$appSuggestions.size}",
+                LogHelper.LOG_LEVEL.INFO, "SLRoot")
+        }
+    }
+
+    fun loadState(){
+        GlobalScope.launch {
+            loadLaunchSequence()
+            loadLaunchHistory()
+            loadPreds()
+
+            LogHelper.getLogHelper(context).addLogToQueue("loadState called: " +
+                    "launchSeq=${launchSequence.size}" +
+                    ", histSize=${launchHistory.size}, preds={$appSuggestions.size}",
+                LogHelper.LOG_LEVEL.INFO, "SLRoot")
+        }
+    }
+
+    suspend fun saveLaunchSequence(){
+        val fileLaunchSeq = File(Utils.getAppFolderInternal(context),
+            Constants.LAUNCH_SEQUENCE_SAVE_FILE)
+        Utils.writeToFile(context, fileLaunchSeq.absolutePath, launchSequence as Object)
+    }
+
+    suspend fun saveLaunchHistory(){
+        val file = File(Utils.getAppFolderInternal(context),
+            Constants.LAUNCH_HISTORY_SAVE_FILE)
+        Utils.writeToFile(context, file.absolutePath, launchHistory as Object)
+    }
+
+    suspend fun savePreds(){
+        val file = File(Utils.getAppFolderInternal(context),
+            Constants.APP_SUGGESTIONS_SAVE_FILE)
+        val temp: List<String> = appSuggestions.map { it.packageName }
+        Utils.writeToFile(context, file.absolutePath, temp as Object)
+    }
+
+    suspend fun loadLaunchSequence(){
+        val fileLaunchSeq = File(Utils.getAppFolderInternal(context),
+            Constants.LAUNCH_SEQUENCE_SAVE_FILE)
+        val temp = Utils.readFromFile<ArrayList<String>>(context, fileLaunchSeq.absolutePath)
+        if(temp != null)
+            launchSequence =  temp
+    }
+
+    suspend fun loadLaunchHistory(){
+        val file = File(Utils.getAppFolderInternal(context),
+            Constants.LAUNCH_HISTORY_SAVE_FILE)
+        val temp = Utils.readFromFile<LinkedMap<Int, ArrayRealVector>>(context, file.absolutePath)
+        if(temp != null)
+            launchHistory = temp
+    }
+
+    suspend fun loadPreds(){
+        val file = File(Utils.getAppFolderInternal(context),
+            Constants.APP_SUGGESTIONS_SAVE_FILE)
+        val temp = Utils.readFromFile<ArrayList<String>>(context, file.absolutePath)
+        appSuggestions.clear()
+        if(temp != null) {
+            for(packageName in temp) {
+                for(appModel in allInstalledApps) {
+                    if(appModel.packageName.equals(packageName, true))
+                    appSuggestions.add(appModel)
+                }
+            }
+        }
+        appSuggestionsLiveData.postValue(appSuggestions)
     }
 }

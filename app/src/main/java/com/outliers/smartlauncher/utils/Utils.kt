@@ -15,7 +15,6 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.BatteryManager
 import android.os.Build
-import android.os.Bundle
 import android.provider.Settings
 import android.text.TextUtils
 import android.util.DisplayMetrics
@@ -25,12 +24,14 @@ import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.RotateAnimation
 import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.app.AlertDialog
-import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.gson.Gson
 import com.outliers.smartlauncher.BuildConfig
 import com.outliers.smartlauncher.models.AppModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.apache.commons.math3.linear.RealVector
 import org.json.JSONObject
-import java.io.File
+import java.io.*
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -295,5 +296,46 @@ object Utils {
             }
         }
         return device
+    }
+
+    suspend fun writeToFile(context: Context, path: String, objectToWrite: Object){
+        try {
+            Log.v("writeToFile", "obj = $objectToWrite")
+            withContext(Dispatchers.IO) {
+                val serializedObj = Gson().toJson(objectToWrite)
+                val fos: FileOutputStream = FileOutputStream(path)
+                val os = ObjectOutputStream(fos)
+                os.writeObject(serializedObj)
+                os.close()
+                fos.close()
+            }
+        }catch (ex: Exception){
+            LogHelper.getLogHelper(context).addLogToQueue(
+                "writeToFileException:" +
+                        "${Log.getStackTraceString(ex)}", LogHelper.LOG_LEVEL.ERROR, context
+            )
+        }
+    }
+
+    suspend inline fun <reified T> readFromFile(context: Context, fileName: String): T?{
+        var obj: T? = null
+        try {
+            withContext(Dispatchers.IO) {
+                val fis = FileInputStream(fileName)
+                val `is` = ObjectInputStream(fis)
+                val temp = `is`.readObject()
+                `is`.close()
+                fis.close()
+
+                obj = Gson().fromJson(temp.toString(), T::class.java)
+            }
+        }catch (ex: Exception){
+            LogHelper.getLogHelper(context).addLogToQueue(
+                "readFromFileException:" +
+                        "${Log.getStackTraceString(ex)}\nobj=${obj.toString()}", LogHelper.LOG_LEVEL.ERROR, context
+            )
+            obj = null
+        }
+        return obj
     }
 }
