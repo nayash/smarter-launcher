@@ -21,16 +21,20 @@ import com.outliers.smartlauncher.R
 import com.outliers.smartlauncher.consts.Constants
 import com.outliers.smartlauncher.models.AppModel
 import com.outliers.smartlauncher.models.AppModel.CREATOR.getAppModelsFromPackageInfoList
+import com.outliers.smartlauncher.utils.JUtils
+import com.outliers.smartlauncher.utils.LogHelper
 import com.outliers.smartlauncher.utils.Utils
 import com.outliers.smartlauncher.utils.Utils.isValidString
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
+import org.apache.commons.collections4.map.LinkedMap
 import org.apache.commons.math3.linear.ArrayRealVector
 import org.apache.commons.math3.linear.RealVector
 import java.lang.Exception
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
+import kotlin.collections.LinkedHashMap
 import kotlin.math.pow
 
 class SmartLauncherRoot private constructor(val context: Context) {
@@ -40,16 +44,19 @@ class SmartLauncherRoot private constructor(val context: Context) {
     val appToIdxMap: ArrayMap<String, Int> = ArrayMap()  // package to index map for ATF construction
     val idToApp: ArrayMap<Int, String> = ArrayMap()  // reverse Map of appToIdMap
     val launchSequence: ArrayList<String> = ArrayList(WINDOW_SIZE)  // sequence of last 'window size' package names
-    val launchHistory: HashMap<Int, RealVector> = HashMap()  //
+    val launchHistory: LinkedMap<Int, RealVector> = LinkedMap()  //
     val launcherPref = context.getSharedPreferences(Constants.PREF_NAME, Context.MODE_PRIVATE)
     val appSuggestions = ArrayList<AppModel>(APP_SUGGESTION_COUNT)
     val appSuggestionsLiveData: MutableLiveData<ArrayList<AppModel>> = MutableLiveData()
+    val logHelper = LogHelper.getLogHelper(context)
 
     companion object {
         private var outliersLauncherRoot: SmartLauncherRoot? = null  // TODO warning--context in static field; memory leak.
         fun getInstance(context: Context): SmartLauncherRoot? {
-            if (outliersLauncherRoot == null)
+            if (outliersLauncherRoot == null) {
+                Log.e("test-slRoot", "calling slRoot constructor")
                 outliersLauncherRoot = SmartLauncherRoot(context)
+            }
             return outliersLauncherRoot
         }
         const val WINDOW_SIZE = 3
@@ -61,6 +68,7 @@ class SmartLauncherRoot private constructor(val context: Context) {
 
     init {
         initPackageToIdMap()
+        sizeTest()
     }
 
     val allInstalledApps: ArrayList<AppModel>
@@ -258,5 +266,14 @@ class SmartLauncherRoot private constructor(val context: Context) {
     fun refreshAppList(){
         appModels.clear()
         allInstalledApps
+    }
+
+    fun sizeTest(){
+        for(i in 0..5000){
+            launchHistory.put(i, ArrayRealVector(allInstalledApps.size))
+        }
+        Log.d("test-sizeTestB4", launchHistory.size.toString())
+        JUtils.dropFirstKey(launchHistory)  // wrapper Java method to avoid "unresolved overload ambiguity"
+        Log.d("test-sizeTestAfter", launchHistory.size.toString())
     }
 }

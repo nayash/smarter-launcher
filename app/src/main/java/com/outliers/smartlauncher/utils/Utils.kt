@@ -15,18 +15,24 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.BatteryManager
 import android.os.Build
+import android.os.Bundle
 import android.provider.Settings
 import android.text.TextUtils
 import android.util.DisplayMetrics
+import android.util.Log
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.RotateAnimation
 import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.app.AlertDialog
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.outliers.smartlauncher.BuildConfig
 import com.outliers.smartlauncher.models.AppModel
 import org.apache.commons.math3.linear.RealVector
+import org.json.JSONObject
+import java.io.File
+import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.collections.ArrayList
 
 
 object Utils {
@@ -247,5 +253,47 @@ object Utils {
                 return appModel
         }
         return null
+    }
+
+    @JvmStatic
+    fun getAppFolderInternal(context: Context): File {
+        val file = File(context.filesDir, "smart_launcher")
+        if (!file.exists()) {
+            file.mkdir()
+        }
+        return file
+    }
+
+    @JvmStatic
+    fun getDate(timeInMilli: Long, format: String?): String? {
+        return if (timeInMilli != 0L) {
+            val sdf = SimpleDateFormat(format ?: "dd/MM/yyyy")
+            var date: String? = null
+            val now = Date(timeInMilli)
+            date = sdf.format(now)
+            date
+        } else {
+            "0"
+        }
+    }
+
+    @JvmStatic
+    fun getLibVersion(): String {
+        return BuildConfig.VERSION_NAME
+    }
+
+    @JvmStatic
+    fun getDeviceDetails(): JSONObject {
+        val device = JSONObject()
+        try {
+            device.put("device", Build.MANUFACTURER + "_" + Build.MODEL)
+            device.put("version", Build.VERSION.SDK_INT)
+        } catch (ex: java.lang.Exception) {
+            try {
+                device.put("device", ex.message)
+            } catch (e: java.lang.Exception) {
+            }
+        }
+        return device
     }
 }

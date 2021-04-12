@@ -5,4 +5,8 @@
     <string name="location_permission_rationale">Location permission is needed to predict next app usage based on location</string>
     <string name="location_denied_consequence">Location won\'t be used to learn patterns. Results may not be optimal</string>
     <string name="location_disabled">Location is disabled. Prediction may be inaccurate</string>
+
+    <string name="issue_mail_template">Hi User,\n\n Please briefly describe the issue you are facing:\n</string>
+    <string name="sl_file_provider">com.outliers.smartlauncher.file_provider</string>
+    <string name="choose_share_app">Choose an app to share with</string>
 </resources>

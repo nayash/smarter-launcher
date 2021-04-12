@@ -2,9 +2,11 @@ package com.outliers.smartlauncher.ui
 
 import android.Manifest
 import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.graphics.Rect
+import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -12,11 +14,11 @@ import android.util.Log
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
-import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.core.content.res.ResourcesCompat
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.GridLayoutManager
@@ -28,7 +30,9 @@ import com.outliers.smartlauncher.core.RVItemDecoration
 import com.outliers.smartlauncher.core.SmartLauncherApplication
 import com.outliers.smartlauncher.databinding.ActivityMainBinding
 import com.outliers.smartlauncher.models.AppModel
+import com.outliers.smartlauncher.utils.LogHelper
 import com.outliers.smartlauncher.utils.Utils
+import java.io.File
 import java.util.*
 
 
@@ -59,11 +63,11 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
             }
 
             override fun afterTextChanged(s: Editable?) {
-                if(s != null && s?.length > 0){
+                if (s != null && s?.length > 0) {
                     // show cross
                     ivSearchSearch.visibility = View.GONE
                     ivSearchClose.visibility = View.VISIBLE
-                }else{
+                } else {
                     // search icon
                     ivSearchSearch.visibility = View.VISIBLE
                     ivSearchClose.visibility = View.GONE
@@ -107,7 +111,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
             }
 
             override fun onSlide(bottomSheet: View, slideOffset: Float) {
-                binding.rlPredApps.alpha = 1-slideOffset
+                binding.rlPredApps.alpha = 1 - slideOffset
             }
         })
 
@@ -134,8 +138,22 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
             displayNewSuggestions(it)
         })
 
-        Log.v("test-onCreate", "onCreate called")
         // displayNewSuggestions(viewModel.appList.take(7) as ArrayList<AppModel>)
+
+        crashPrompt()
+    }
+
+    fun crashPrompt(){
+        val crashRestart: Boolean =
+            viewModel.smartLauncherRoot?.launcherPref?.getBoolean("crash_restart", false) == true
+        if (crashRestart) {
+            /*val intent = Intent(this, CrashHandlerActivity::class.java)
+            intent.putExtra("crash_id", mSharedPreferences.getString("crash_id", ""))
+            startActivity(intent)*/
+            viewModel.smartLauncherRoot?.launcherPref?.edit()?.putBoolean("crash_restart", false)?.apply()
+            // mSharedPreferences.edit().putString("crash_id", "").apply()
+            // Crashlytics.setString("crash_id", "")
+        }
     }
 
     fun searchApp(s: String) {
@@ -250,8 +268,10 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         //}
         val verticalSpace = Utils.convertDpToPixel(resources.getDimension(R.dimen.app_vertical_space))
 
-        Log.d("test-predDraw", "width: $width, iconDim: $appIconDim, hs: $horizontalSpace, " +
-                "vs: $verticalSpace")
+        Log.d(
+            "test-predDraw", "width: $width, iconDim: $appIconDim, hs: $horizontalSpace, " +
+                    "vs: $verticalSpace"
+        )
 
         var prevView: View? = null
         var belowId: Int? = null
@@ -262,17 +282,26 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
             val row = idx / appsPerRow
             if(col == 0) {
                 tableRow = TableRow(this)
-                val layoutParams = TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT,
-                    TableLayout.LayoutParams.WRAP_CONTENT, 1f)
+                val layoutParams = TableLayout.LayoutParams(
+                    TableLayout.LayoutParams.MATCH_PARENT,
+                    TableLayout.LayoutParams.WRAP_CONTENT, 1f
+                )
                 tableRow.gravity = Gravity.CENTER
                 tableRow.weightSum = appsPerRow.toFloat()
                 tableRow?.layoutParams = layoutParams
             }
             appView.findViewById<ImageView>(R.id.iv_app).setImageDrawable(appModel.appIcon)
             appView.findViewById<TextView>(R.id.tv_app_name).visibility = View.GONE
-            val trLayoutParams = TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT,
-                TableRow.LayoutParams.WRAP_CONTENT, 1f)
-            trLayoutParams.setMargins(0,(verticalSpace/2).toInt(), 0, (verticalSpace/2).toInt())
+            val trLayoutParams = TableRow.LayoutParams(
+                TableRow.LayoutParams.MATCH_PARENT,
+                TableRow.LayoutParams.WRAP_CONTENT, 1f
+            )
+            trLayoutParams.setMargins(
+                0,
+                (verticalSpace / 2).toInt(),
+                0,
+                (verticalSpace / 2).toInt()
+            )
             appView.layoutParams = trLayoutParams
             appView.setOnClickListener {
                 startActivity(appModel.launchIntent)
@@ -296,6 +325,49 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         val id = v?.id
         when(id){
             R.id.iv_right_cross -> etSearch.setText("")
+        }
+    }
+
+    private fun shareLogs() {  // TODO use this to share logs. skipping it for now.
+        LogHelper.getLogHelper(this).flush() // flush any queued logs before sharing logs
+        val intent = Intent(Intent.ACTION_SEND)
+        intent.type = "text/plain"
+        intent.putExtra(Intent.EXTRA_EMAIL, arrayOf("appsupport@happay.in"))
+        intent.putExtra(Intent.EXTRA_CC, arrayOf("asutosh.nayak@happay.in"))
+        intent.putExtra(
+            Intent.EXTRA_SUBJECT,
+            "User Logs"
+        )
+        intent.putExtra(Intent.EXTRA_TEXT, getString(R.string.issue_mail_template))
+        try {
+            val sourceDir: File = Utils.getAppFolderInternal(this)
+            val files: Array<File> = sourceDir.listFiles()
+            val uris: ArrayList<Uri> = ArrayList()
+            Log.e("getAllFilesInDir", "Size: " + files.size)
+            intent.action = Intent.ACTION_SEND_MULTIPLE
+            for (i in files.indices) {
+                //Log.e("getAllFilesInDir", "FileName:" + files[i].getAbsolutePath());
+                val uri: Uri = FileProvider.getUriForFile(
+                    applicationContext,
+                    getString(R.string.sl_file_provider),
+                    files[i]
+                )
+                //Uri uri = Uri.parse("file://" + files[i]);
+                //intent.putExtra(Intent.EXTRA_STREAM, uri);
+                uris.add(uri)
+            }
+            intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+            intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            startActivityForResult(
+                Intent.createChooser(
+                    intent,
+                    getString(R.string.choose_share_app)
+                ), 1
+            )
+        } catch (e: Exception) {
+            //Log.e("AttachError", "E", e);
+            Toast.makeText(this, e.message, Toast.LENGTH_SHORT).show()
         }
     }
 }
