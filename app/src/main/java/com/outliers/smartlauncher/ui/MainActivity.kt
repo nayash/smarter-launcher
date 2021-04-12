@@ -1,7 +1,9 @@
 package com.outliers.smartlauncher.ui
 
 import android.Manifest
+import android.app.role.RoleManager
 import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Resources
@@ -142,6 +144,14 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         // displayNewSuggestions(viewModel.appList.take(7) as ArrayList<AppModel>)
 
         crashPrompt()
+        if(!Utils.isMyAppLauncherDefault(this))
+            askForDefaultLauncher()
+    }
+
+    fun askForDefaultLauncher(){
+        val roleManager = getSystemService(Context.ROLE_SERVICE) as RoleManager
+        val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_HOME)
+        startActivityForResult(intent, 1)
     }
 
     fun crashPrompt(){

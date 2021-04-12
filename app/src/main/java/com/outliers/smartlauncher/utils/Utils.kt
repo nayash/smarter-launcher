@@ -3,11 +3,9 @@ package com.outliers.smartlauncher.utils
 import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothHeadset
-import android.content.Context
-import android.content.DialogInterface
-import android.content.Intent
-import android.content.IntentFilter
+import android.content.*
 import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.location.LocationManager
 import android.media.AudioManager
@@ -25,8 +23,6 @@ import android.view.animation.RotateAnimation
 import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.app.AlertDialog
 import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import com.google.gson.reflect.TypeToken
 import com.outliers.smartlauncher.BuildConfig
 import com.outliers.smartlauncher.models.AppModel
 import kotlinx.coroutines.Dispatchers
@@ -333,7 +329,9 @@ object Utils {
         }catch (ex: Exception){
             LogHelper.getLogHelper(context).addLogToQueue(
                 "readFromFileException:" +
-                        "${Log.getStackTraceString(ex)}\nobj=${obj.toString()}", LogHelper.LOG_LEVEL.ERROR, context
+                        "${Log.getStackTraceString(ex)}\nobj=${obj.toString()}",
+                LogHelper.LOG_LEVEL.ERROR,
+                context
             )
             obj = null
         }
@@ -353,10 +351,29 @@ object Utils {
         }catch (ex: Exception){
             LogHelper.getLogHelper(context).addLogToQueue(
                 "readFromFileException:" +
-                        "${Log.getStackTraceString(ex)}\nobj=${temp}", LogHelper.LOG_LEVEL.ERROR, context
+                        "${Log.getStackTraceString(ex)}\nobj=${temp}",
+                LogHelper.LOG_LEVEL.ERROR,
+                context
             )
             temp = null
         }
         return temp
+    }
+
+    fun isMyAppLauncherDefault(context: Context): Boolean {
+        val filter = IntentFilter(Intent.ACTION_MAIN)
+        filter.addCategory(Intent.CATEGORY_HOME)
+        val filters: MutableList<IntentFilter> = ArrayList()
+        filters.add(filter)
+        val myPackageName: String = context.packageName
+        val activities: List<ComponentName> = ArrayList()
+        val packageManager = context.packageManager
+        packageManager.getPreferredActivities(filters, activities, null)
+        for (activity in activities) {
+            if (myPackageName == activity.packageName) {
+                return true
+            }
+        }
+        return false
     }
 }
