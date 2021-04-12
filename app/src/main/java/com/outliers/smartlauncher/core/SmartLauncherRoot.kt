@@ -11,6 +11,7 @@ import androidx.lifecycle.MutableLiveData
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
+import com.google.gson.Gson
 import com.outliers.smartlauncher.R
 import com.outliers.smartlauncher.consts.Constants
 import com.outliers.smartlauncher.models.AppModel
@@ -24,6 +25,8 @@ import kotlinx.coroutines.channels.Channel
 import org.apache.commons.collections4.map.LinkedMap
 import org.apache.commons.math3.linear.ArrayRealVector
 import org.apache.commons.math3.linear.RealVector
+import org.json.JSONException
+import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
 import java.io.ObjectOutputStream
@@ -40,7 +43,7 @@ class SmartLauncherRoot private constructor(val context: Context) {
     val appToIdxMap: ArrayMap<String, Int> = ArrayMap()  // package to index map for ATF construction
     val idToApp: ArrayMap<Int, String> = ArrayMap()  // reverse Map of appToIdMap
     var launchSequence: ArrayList<String> = ArrayList(WINDOW_SIZE)  // sequence of last 'window size' package names
-    var launchHistory: LinkedMap<Int, ArrayRealVector> = LinkedMap()  //
+    var launchHistory: LinkedMap<String, ArrayRealVector> = LinkedMap()  //
     val launcherPref = context.getSharedPreferences(Constants.PREF_NAME, Context.MODE_PRIVATE)
     var appSuggestions = ArrayList<AppModel>(APP_SUGGESTION_COUNT)
     val appSuggestionsLiveData: MutableLiveData<ArrayList<AppModel>> = MutableLiveData()
@@ -133,7 +136,8 @@ class SmartLauncherRoot private constructor(val context: Context) {
             // to use it for future predictions
             if(appToIdMap[packageName] == null)
                 Log.e("test-packageNull", "$packageName --- ${appToIdxMap.size}, ${allInstalledApps.size}")
-            appToIdMap[packageName]?.let { launchHistory.put(it, launchVec) }
+            // appToIdMap[packageName]?.let { launchHistory.put(it, launchVec) }
+            launchHistory.put(packageName, launchVec)
             Log.v("test-launchHistorySize", launchHistory.size.toString())
             val duration = (System.currentTimeMillis()-stime)/1000
             Log.d("test-processTime", "processing duration = $duration secs")
@@ -143,16 +147,19 @@ class SmartLauncherRoot private constructor(val context: Context) {
     private suspend fun findKNN(launchVec: ArrayRealVector): ArrayList<AppModel>{
         val appPreds = ArrayList<AppModel>()
         var appScoresMap = HashMap<String, Double>()  // appPackage to score mapping, to later apply toSrotedMap
-        for((appId, lVecHist) in launchHistory){
+        for((packageName, lVecHist) in launchHistory){
             val distance = lVecHist.getDistance(launchVec)
             val similarity = 1/(distance + EPSILON)
 
             // appToIdxMap[idToApp[appId]]?.let { appScoresMap[it] += similarity }
-            idToApp[appId]?.let{ packageName->
+            /*idToApp[appId]?.let{ packageName->
                 var prevScore = appScoresMap[packageName] ?: 0.0
                 prevScore += similarity
                 appScoresMap[packageName] = prevScore
-            }
+            }*/
+            var prevScore = appScoresMap[packageName] ?: 0.0
+            prevScore += similarity
+            appScoresMap[packageName] = prevScore
         }
         var breaker = 0
         Log.v("test-appScores", appScoresMap.toString())
@@ -272,10 +279,11 @@ class SmartLauncherRoot private constructor(val context: Context) {
 
     fun sizeTest(){
         for(i in 0..5000){
-            launchHistory.put(i, ArrayRealVector(allInstalledApps.size))
+            launchHistory.put(i.toString(), ArrayRealVector(allInstalledApps.size))
         }
         Log.d("test-sizeTestB4", launchHistory.size.toString())
-        JUtils.dropFirstKey(launchHistory)  // wrapper Java method to avoid "unresolved overload ambiguity"
+        // JUtils.dropFirstKey(launchHistory)  // wrapper Java method to avoid "unresolved overload ambiguity"
+        launchHistory.remove(0)
         Log.d("test-sizeTestAfter", launchHistory.size.toString())
     }
 
@@ -315,6 +323,8 @@ class SmartLauncherRoot private constructor(val context: Context) {
         val file = File(Utils.getAppFolderInternal(context),
             Constants.LAUNCH_HISTORY_SAVE_FILE)
         Utils.writeToFile(context, file.absolutePath, launchHistory as Object)
+        // launcherPref.edit().putString(Constants.LAUNCH_HISTORY_SAVE_FILE, Gson().toJson(launchHistory)).apply()
+        Log.v("test-launchHistorySave", Gson().toJson(launchHistory))
     }
 
     suspend fun savePreds(){
@@ -335,14 +345,29 @@ class SmartLauncherRoot private constructor(val context: Context) {
     suspend fun loadLaunchHistory(){
         val file = File(Utils.getAppFolderInternal(context),
             Constants.LAUNCH_HISTORY_SAVE_FILE)
-        val temp = Utils.readFromFile<LinkedMap<Int, ArrayRealVector>>(context, file.absolutePath)
-        try {
-            Log.v("test-loadLH", "${temp?.firstKey()?.javaClass}")
-        }catch (ex: Exception){
-            Log.e("test-key", Log.getStackTraceString(ex))
+        val checkPoint = Utils.readFromFileAsString(context, file.absolutePath)
+        //{"com.google.android.calendar":{"data":[0.41935483870967744,0.041666666666666664,0.03597791333333333,0.21588130694444443,0.0,1.0,0.0,0.0,1.0,0.0,0.97,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]},"com.google.android.deskclock":{"data":[0.41935483870967744,0.041666666666666664,0.03597791861111111,0.2158812911111111,0.0,1.0,0.0,0.0,1.0,0.0,0.97,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]}}
+        // val checkPoint = launcherPref.getString(Constants.LAUNCH_HISTORY_SAVE_FILE, "")
+        Log.v("test-lhLoad", "checkpoint= $checkPoint")
+        if(checkPoint != null && checkPoint.isNotEmpty()){
+            try {
+                val temp = JSONObject(checkPoint)
+                launchHistory.clear()
+                for(key:String in temp.keys()){
+                    val vecJArray = temp.getJSONObject(key).getJSONArray("data")
+                    val realVec = ArrayRealVector(vecJArray.length())
+                    for(i in 0..vecJArray.length()-1){
+                        realVec.setEntry(i, vecJArray.getDouble(i))
+                    }
+                    launchHistory.set(key, realVec)
+                }
+                Log.v("test-launchHistoryLoad", "$temp")
+            }catch (ex: JSONException){
+                Log.e("test-lhJSON", Log.getStackTraceString(ex))
+            }
         }
-        if(temp != null)
-            launchHistory = temp
+        if(launchHistory.size > 0)
+            Log.v("test-launchHistoryLoad", "$launchHistory")
     }
 
     suspend fun loadPreds(){

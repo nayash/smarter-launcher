@@ -181,6 +181,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
             }
             return@setOnMenuItemClickListener true
         }
+        popupMenu.show()
     }
 
     override fun onStart() {

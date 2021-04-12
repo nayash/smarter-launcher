@@ -328,7 +328,6 @@ object Utils {
                 val temp = `is`.readObject()
                 `is`.close()
                 fis.close()
-                val builder: GsonBuilder = GsonBuilder()
                 obj = Gson().fromJson(temp.toString(), T::class.java)
             }
         }catch (ex: Exception){
@@ -339,5 +338,25 @@ object Utils {
             obj = null
         }
         return obj
+    }
+
+    suspend inline fun readFromFileAsString(context: Context, fileName: String): String? {
+        var temp: String? = null
+        try {
+            withContext(Dispatchers.IO) {
+                val fis = FileInputStream(fileName)
+                val `is` = ObjectInputStream(fis)
+                temp = `is`.readObject().toString()
+                `is`.close()
+                fis.close()
+            }
+        }catch (ex: Exception){
+            LogHelper.getLogHelper(context).addLogToQueue(
+                "readFromFileException:" +
+                        "${Log.getStackTraceString(ex)}\nobj=${temp}", LogHelper.LOG_LEVEL.ERROR, context
+            )
+            temp = null
+        }
+        return temp
     }
 }
