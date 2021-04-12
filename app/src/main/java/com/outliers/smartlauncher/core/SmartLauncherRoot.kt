@@ -356,7 +356,7 @@ class SmartLauncherRoot private constructor(val context: Context) {
                 for(key:String in temp.keys()){
                     val vecJArray = temp.getJSONObject(key).getJSONArray("data")
                     val realVec = ArrayRealVector(vecJArray.length())
-                    for(i in 0..vecJArray.length()-1){
+                    for(i in 0 until vecJArray.length()){
                         realVec.setEntry(i, vecJArray.getDouble(i))
                     }
                     launchHistory.set(key, realVec)
