@@ -16,8 +16,8 @@ import kotlin.collections.ArrayList
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val smartLauncherRoot = SmartLauncherRoot.getInstance(application)
-    var appList: ArrayList<AppModel> = smartLauncherRoot?.allInstalledApps ?: ArrayList()
-    var appListCopy: ArrayList<AppModel> = appList.clone() as ArrayList<AppModel>
+    var appListCopy: ArrayList<AppModel> = smartLauncherRoot?.allInstalledApps ?: ArrayList()
+    var appList: ArrayList<AppModel> = appListCopy.clone() as ArrayList<AppModel>
 
     fun searchTextChanged(s: String){
         if (s.isEmpty()) {

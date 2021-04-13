@@ -74,7 +74,7 @@ class SmartLauncherRoot private constructor(val context: Context) {
     }
 
     val allInstalledApps: ArrayList<AppModel>
-        get() {  // TODO instead of querying installed apps all the time, implement install/uninstall listeners and update only in such events?
+        get() {
             if (appModels.size == 0) {
                 //allInstalledApps.clear()
                 appModels.addAll(
@@ -88,7 +88,7 @@ class SmartLauncherRoot private constructor(val context: Context) {
                 filterOutUnknownApps(appModels)
                 Log.v("test-Apps", appModels.size.toString())
             }
-            return appModels
+            return appModels.clone() as ArrayList<AppModel>
         }
 
     fun sortApplicationsByName(appModels: ArrayList<AppModel>) {
