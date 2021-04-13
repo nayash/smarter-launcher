@@ -21,7 +21,6 @@ class SmartLauncherApplication: Application() {
 
         val intentFilterInstalled = IntentFilter()
         intentFilterInstalled.addAction(Intent.ACTION_PACKAGE_ADDED)
-        intentFilterInstalled.addAction(Intent.ACTION_PACKAGE_INSTALL)
         intentFilterInstalled.addDataScheme("package")
         registerReceiver(appInstallBR, intentFilterInstalled)
 
@@ -59,8 +58,10 @@ class SmartLauncherApplication: Application() {
 
         when(level){
             TRIM_MEMORY_RUNNING_LOW -> cleanAndBackUp()
-            TRIM_MEMORY_BACKGROUND -> cleanAndBackUp()
-            TRIM_MEMORY_UI_HIDDEN -> cleanAndBackUp()
+            TRIM_MEMORY_BACKGROUND -> {cleanAndBackUp()
+            Log.v("test-application", "BG called")}
+            TRIM_MEMORY_UI_HIDDEN -> {cleanAndBackUp()
+                Log.v("test-application", "UI Hidden called")}
         }
     }
 
@@ -71,20 +72,18 @@ class SmartLauncherApplication: Application() {
 
     private val appInstallBR = object : BroadcastReceiver(){
         override fun onReceive(context: Context?, intent: Intent?) {
-            // TODO handle new app installed
             val packageName = intent?.data?.encodedSchemeSpecificPart
             Log.v("test", "app installed:$packageName")
-            smartLauncherRoot?.refreshAppList()
+            smartLauncherRoot?.refreshAppList(1, packageName)
             appListRefreshed.value = true
         }
     }
 
     private val appUninstallBR = object : BroadcastReceiver(){
         override fun onReceive(context: Context?, intent: Intent?) {
-            // TODO handle app uninstalled
             val packageName = intent?.data?.encodedSchemeSpecificPart
             Log.v("test", "app uninstalled:$packageName")
-            smartLauncherRoot?.refreshAppList()
+            smartLauncherRoot?.refreshAppList(0, packageName)
             appListRefreshed.value = true
         }
     }

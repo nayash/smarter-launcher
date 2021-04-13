@@ -44,11 +44,14 @@ class SmartLauncherRoot private constructor(val context: Context) {
     val appToIdxMap: ArrayMap<String, Int> = ArrayMap()  // package to index map for ATF construction
     val idToApp: ArrayMap<Int, String> = ArrayMap()  // reverse Map of appToIdMap
     var launchSequence: ArrayList<String> = ArrayList(WINDOW_SIZE)  // sequence of last 'window size' package names
-    var launchHistory: LinkedMap<String, ArrayRealVector> = LinkedMap()  //
+    // String key is used instead of int because int was being converted to String while reading
+    // saved states and also "ambiguous overload error" while using function map.get(index)
+    var launchHistory: LinkedMap<String, ArrayRealVector> = LinkedMap()
     val launcherPref = context.getSharedPreferences(Constants.PREF_NAME, Context.MODE_PRIVATE)
     var appSuggestions = ArrayList<AppModel>(APP_SUGGESTION_COUNT)
     val appSuggestionsLiveData: MutableLiveData<ArrayList<AppModel>> = MutableLiveData()
     val logHelper = LogHelper.getLogHelper(context)
+    val skip = false
 
     companion object {
         private var outliersLauncherRoot: SmartLauncherRoot? = null  // TODO warning--context in static field; memory leak.
@@ -114,6 +117,8 @@ class SmartLauncherRoot private constructor(val context: Context) {
     }
 
     fun appLaunched(packageName: String){
+        if(skip)
+            return
         GlobalScope.launch {
             Log.v("test-lseq", "calling processAppSuggestion")
             processAppSuggestion(packageName)
@@ -273,9 +278,65 @@ class SmartLauncherRoot private constructor(val context: Context) {
         appSuggestionsLiveData.postValue(appSuggestions)
     }
 
-    fun refreshAppList(){
-        appModels.clear()
-        allInstalledApps
+    fun refreshAppList(eventType: Int, packageName: String?){
+        GlobalScope.launch {
+            appModels.clear()
+            allInstalledApps
+            if (eventType == 1) {// new app installed
+                val oldSize = launchHistory.getValue(0).dimension
+                if (oldSize + 1 != allInstalledApps.size || appToIdMap.contains(packageName)) {
+                    // something unexpected happened. log it!
+                    FirebaseCrashlytics.getInstance().log(
+                        "installed package prob: $packageName," +
+                                " old_size: $oldSize, new_size: ${allInstalledApps.size}"
+                    )
+                    FirebaseCrashlytics.getInstance()
+                        .recordException(Exception("Got app_install event but size is same or package exists"))
+                }else {
+                    packageName?.let { addNewDimensionToHistory(it) }
+                }
+            } else { // app uninstalled
+                val oldSize = launchHistory.getValue(0).dimension
+                if (oldSize - 1 != allInstalledApps.size || !appToIdMap.contains(packageName)) {
+                    // something unexpected happened. log it!
+                    FirebaseCrashlytics.getInstance().log(
+                        "uninstalled package prob: $packageName," +
+                                " old_size: $oldSize, new_size: ${allInstalledApps.size}"
+                    )
+                    FirebaseCrashlytics.getInstance()
+                        .recordException(Exception("Got app_uninstall event but size is same or package exists"))
+                }else {
+                    packageName?.let { removeOldDimension(it) }
+                }
+            }
+        }
+    }
+
+    suspend fun addNewDimensionToHistory(packageName: String){
+        appToIdxMap[packageName] = appToIdxMap.size
+        appToIdMap[packageName] = packageName.hashCode()
+        idToApp[packageName.hashCode()] = packageName
+        withContext(Dispatchers.IO) {
+            for ((packageName, vector) in launchHistory) {
+                launchHistory[packageName] = vector.append(0.0) as ArrayRealVector
+            }
+        }
+    }
+
+    suspend fun removeOldDimension(packageName: String){
+        withContext(Dispatchers.IO){
+            val idxToRemove = appToIdxMap[packageName]
+            idxToRemove?.let {
+                for ((packageName, vector) in launchHistory) {
+                    val newVec = vector.getSubVector(0, idxToRemove).append(
+                        vector.getSubVector(idxToRemove+1, vector.dimension-(idxToRemove+1)))
+                    launchHistory[packageName] = newVec as ArrayRealVector?
+                }
+            }
+            appToIdMap.remove(packageName)
+            appToIdxMap.remove(packageName)
+            idToApp.remove(packageName.hashCode())
+        }
     }
 
     fun sizeTest(){

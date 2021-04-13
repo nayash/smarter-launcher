@@ -9,7 +9,10 @@ import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.graphics.Rect
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
@@ -151,24 +154,42 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         if(!Utils.isMyAppLauncherDefault(this))
             askForDefaultLauncher()
 
+        Log.v("test-oncreate", "main activity onCreate called")
+        Toast.makeText(this,"Launcher onCreate called!!", Toast.LENGTH_LONG).show()
+
+        Handler(Looper.getMainLooper()).postDelayed(Runnable {
+            Utils.hideKeyboard(this)
+        }, 1000)
     }
 
     fun askForDefaultLauncher(){
-        val roleManager = getSystemService(Context.ROLE_SERVICE) as RoleManager
-        val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_HOME)
-        startActivityForResult(intent, 1)
+        if(Build.VERSION.SDK_INT >= 29) {
+            val roleManager = getSystemService(Context.ROLE_SERVICE) as RoleManager
+            val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_HOME)
+            startActivityForResult(intent, 1)
+        }else{
+            /*val intent = Intent()
+            intent.action = Intent.ACTION_MAIN
+            intent.addCategory(Intent.CATEGORY_HOME)
+            startActivity(Intent.createChooser(intent, getString(R.string.default_launcher_prompt)))*/
+            // TODO show dialog prompt and then perform this action
+            val intent = Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
+            startActivity(intent)
+        }
     }
 
     fun crashPrompt(){
         val crashRestart: Boolean =
             viewModel.smartLauncherRoot?.launcherPref?.getBoolean("crash_restart", false) == true
-        if (crashRestart) {
+        if (crashRestart || FirebaseCrashlytics.getInstance().didCrashOnPreviousExecution()) {
             /*val intent = Intent(this, CrashHandlerActivity::class.java)
             intent.putExtra("crash_id", mSharedPreferences.getString("crash_id", ""))
             startActivity(intent)*/
             viewModel.smartLauncherRoot?.launcherPref?.edit()?.putBoolean("crash_restart", false)?.apply()
             // mSharedPreferences.edit().putString("crash_id", "").apply()
             // Crashlytics.setString("crash_id", "")
+            Toast.makeText(this, "crash restart!! $crashRestart," +
+                    " ${FirebaseCrashlytics.getInstance().didCrashOnPreviousExecution()}", Toast.LENGTH_LONG).show()
         }
     }
 

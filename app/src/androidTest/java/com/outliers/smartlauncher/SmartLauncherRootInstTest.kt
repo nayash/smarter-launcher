@@ -1,7 +1,10 @@
 package com.outliers.smartlauncher
 
+import android.util.Log
 import androidx.test.platform.app.InstrumentationRegistry
 import com.outliers.smartlauncher.core.SmartLauncherRoot
+import org.apache.commons.math3.linear.ArrayRealVector
+import org.apache.commons.math3.linear.RealVector
 import org.junit.Before
 import org.junit.Test
 
@@ -34,5 +37,23 @@ class SmartLauncherRootInstTest {
             if(!it)
                 throw Exception("maps not identical")
         }*/
+    }
+
+    @Test
+    fun miscTest(){
+        val size = 20
+        var realVec = ArrayRealVector(size)
+        realVec = realVec.append(10.9) as ArrayRealVector
+        assert(realVec.dimension == size+1)
+        assert(realVec.getEntry(size) == 10.9)
+        Log.v("test", realVec.toString())
+
+        var vec2 = ArrayRealVector(size)
+        for(i in 0 until size)
+            vec2.setEntry(i, i.toDouble())
+        val idxToRemove = 10
+        val newVec = vec2.getSubVector(0, idxToRemove).append(
+            vec2.getSubVector(idxToRemove+1, vec2.dimension-(idxToRemove+1)))
+        Log.v("test2", newVec.toString())
     }
 }
