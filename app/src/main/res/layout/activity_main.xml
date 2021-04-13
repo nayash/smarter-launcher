@@ -19,6 +19,14 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:layout_constraintBottom_toBottomOf="parent"
+                android:layout_marginBottom="50dp"
+                android:visibility="gone"/>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_suggestions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:layout_constraintBottom_toBottomOf="parent"
                 android:layout_marginBottom="50dp"/>
 
             <!--<androidx.constraintlayout.widget.Guideline

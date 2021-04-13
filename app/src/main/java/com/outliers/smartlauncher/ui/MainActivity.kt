@@ -27,6 +27,8 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.firebase.crashlytics.FirebaseCrashlytics
+import com.google.firebase.crashlytics.internal.common.CrashlyticsCore
 import com.outliers.smartlauncher.R
 import com.outliers.smartlauncher.core.MainViewModel
 import com.outliers.smartlauncher.core.RVItemDecoration
@@ -47,6 +49,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
     val sheetBehavior by lazy { BottomSheetBehavior.from(binding.appListSheet) }
     val appPredViewGroup by lazy { binding.rlPredApps }
     lateinit var etSearch: EditText
+    var appPredAdapter: AppsRVAdapter? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -114,7 +117,8 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
             }
 
             override fun onSlide(bottomSheet: View, slideOffset: Float) {
-                binding.rlPredApps.alpha = 1 - slideOffset
+                // binding.rlPredApps.alpha = 1 - slideOffset
+                binding.rvSuggestions.alpha = 1 - slideOffset
             }
         })
 
@@ -138,7 +142,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         }
 
         viewModel.smartLauncherRoot?.appSuggestionsLiveData?.observe(this, {
-            displayNewSuggestions(it)
+            displayNewSuggestions2(it)
         })
 
         // displayNewSuggestions(viewModel.appList.take(7) as ArrayList<AppModel>)
@@ -146,6 +150,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         crashPrompt()
         if(!Utils.isMyAppLauncherDefault(this))
             askForDefaultLauncher()
+
     }
 
     fun askForDefaultLauncher(){
@@ -343,6 +348,32 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         }
 
         appPredViewGroup.invalidate()
+    }
+
+    fun displayNewSuggestions2(apps: ArrayList<AppModel>) {
+        if(appPredAdapter == null){
+            appPredAdapter = AppsRVAdapter(apps, this, object : AppsRVAdapter.IAppsRVAdapter {
+                // using this anonymous instance instead of activity impl to accommodate any future processing for clicks
+                // from app suggestion screen
+                override fun onItemClick(position: Int, appModel: AppModel, extras: Bundle?) {
+                    this@MainActivity.onItemClick(position, appModel, extras)
+                }
+
+                override fun onItemLongPress(view: View, appModel: AppModel, extras: Bundle?) {
+                    this@MainActivity.onItemLongPress(view, appModel, extras)
+                }
+            })
+            val appsPerRow = resources.getInteger(R.integer.app_per_row)
+            binding.rvSuggestions.layoutManager = GridLayoutManager(this, appsPerRow)
+            binding.rvSuggestions.addItemDecoration(
+                RVItemDecoration(
+                    appsPerRow,
+                    getResources().getDimensionPixelSize(R.dimen.margin_default), true
+                )
+            )
+            binding.rvSuggestions.adapter = appPredAdapter
+        }
+        appPredAdapter?.notifyDataSetChanged()
     }
 
     override fun onClick(v: View?) {

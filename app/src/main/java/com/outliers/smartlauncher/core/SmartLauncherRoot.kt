@@ -11,6 +11,7 @@ import androidx.lifecycle.MutableLiveData
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.gson.Gson
 import com.outliers.smartlauncher.R
 import com.outliers.smartlauncher.consts.Constants
@@ -148,7 +149,7 @@ class SmartLauncherRoot private constructor(val context: Context) {
         val appPreds = ArrayList<AppModel>()
         var appScoresMap = HashMap<String, Double>()  // appPackage to score mapping, to later apply toSrotedMap
         for((packageName, lVecHist) in launchHistory){
-            val distance = lVecHist.getDistance(launchVec)
+            val distance = lVecHist.getDistance(launchVec)  // TODO IMP!!! org.apache.commons.math3.exception.DimensionMismatchException: 13 != 183
             val similarity = 1/(distance + EPSILON)
 
             // appToIdxMap[idToApp[appId]]?.let { appScoresMap[it] += similarity }
@@ -169,7 +170,7 @@ class SmartLauncherRoot private constructor(val context: Context) {
             Utils.getAppByPackage(allInstalledApps, packageName)?.let { appPreds.add(it) }
             breaker++
             Log.v("test-app-predictions", "$packageName-->$score")
-            if(breaker > APP_SUGGESTION_COUNT)
+            if(breaker >= APP_SUGGESTION_COUNT)
                 break
         }
         return appPreds
@@ -364,6 +365,7 @@ class SmartLauncherRoot private constructor(val context: Context) {
                 Log.v("test-launchHistoryLoad", "$temp")
             }catch (ex: JSONException){
                 Log.e("test-lhJSON", Log.getStackTraceString(ex))
+                FirebaseCrashlytics.getInstance().recordException(ex)
             }
         }
         if(launchHistory.size > 0)
