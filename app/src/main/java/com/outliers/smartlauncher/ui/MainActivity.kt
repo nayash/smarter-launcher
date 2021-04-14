@@ -29,6 +29,9 @@ import androidx.core.content.res.ResourcesCompat
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationServices
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.crashlytics.internal.common.CrashlyticsCore
@@ -40,6 +43,9 @@ import com.outliers.smartlauncher.databinding.ActivityMainBinding
 import com.outliers.smartlauncher.models.AppModel
 import com.outliers.smartlauncher.utils.LogHelper
 import com.outliers.smartlauncher.utils.Utils
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.*
 
@@ -234,6 +240,21 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
                 getString(R.string.location_permission_rationale),
                 posLambda, negLambda
             )
+        }else{ // granted
+            if (Utils.isLocationEnabled(this)) {
+                val fusedLocationClient: FusedLocationProviderClient =
+                    LocationServices.getFusedLocationProviderClient(this)
+                fusedLocationClient.getCurrentLocation(
+                    LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY,
+                    null).addOnSuccessListener { location ->
+                        location?.let{viewModel.updateLocationCache(it)}
+                    }
+            } else {
+                Toast.makeText(
+                    this, getString(R.string.location_disabled),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
     }
 

@@ -2,6 +2,7 @@ package com.outliers.smartlauncher.core
 
 import android.app.Application
 import android.content.Context
+import android.location.Location
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -35,5 +36,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onAppClicked(appModel: AppModel){
         smartLauncherRoot?.appLaunched(appModel.packageName)
+    }
+
+    fun updateLocationCache(location: Location){
+        smartLauncherRoot?.currentLocation = location
+        Log.v("test-updateLocCache", "$location")
     }
 }
