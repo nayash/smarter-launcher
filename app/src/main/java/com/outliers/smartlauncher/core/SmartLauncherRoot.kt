@@ -154,6 +154,7 @@ class SmartLauncherRoot private constructor(val context: Context) {
         val appPreds = ArrayList<AppModel>()
         var appScoresMap = HashMap<String, Double>()  // appPackage to score mapping, to later apply toSrotedMap
         for((packageName, lVecHist) in launchHistory){
+            Log.v("test-dimCheck", "${lVecHist.dimension}, ${launchVec.dimension}" )
             val distance = lVecHist.getDistance(launchVec)  // TODO IMP!!! org.apache.commons.math3.exception.DimensionMismatchException: 13 != 183
             val similarity = 1/(distance + EPSILON)
 
@@ -283,7 +284,7 @@ class SmartLauncherRoot private constructor(val context: Context) {
             appModels.clear()
             allInstalledApps
             if (eventType == 1) {// new app installed
-                val oldSize = launchHistory.getValue(0).dimension
+                val oldSize = launchHistory.getValue(0).dimension - EXPLICIT_FEATURES_COUNT
                 if (oldSize + 1 != allInstalledApps.size || appToIdMap.contains(packageName)) {
                     // something unexpected happened. log it!
                     FirebaseCrashlytics.getInstance().log(
@@ -296,7 +297,7 @@ class SmartLauncherRoot private constructor(val context: Context) {
                     packageName?.let { addNewDimensionToHistory(it) }
                 }
             } else { // app uninstalled
-                val oldSize = launchHistory.getValue(0).dimension
+                val oldSize = launchHistory.getValue(0).dimension - EXPLICIT_FEATURES_COUNT
                 if (oldSize - 1 != allInstalledApps.size || !appToIdMap.contains(packageName)) {
                     // something unexpected happened. log it!
                     FirebaseCrashlytics.getInstance().log(
@@ -309,6 +310,8 @@ class SmartLauncherRoot private constructor(val context: Context) {
                     packageName?.let { removeOldDimension(it) }
                 }
             }
+            Log.v("test-dimCheckPostMod", "${launchHistory.getValue(0).dimension}," +
+                    "${launchHistory.size}")
         }
     }
 
@@ -316,27 +319,33 @@ class SmartLauncherRoot private constructor(val context: Context) {
         appToIdxMap[packageName] = appToIdxMap.size
         appToIdMap[packageName] = packageName.hashCode()
         idToApp[packageName.hashCode()] = packageName
+        Log.v("test-addNewDim", "called")
         withContext(Dispatchers.IO) {
             for ((packageName, vector) in launchHistory) {
-                launchHistory[packageName] = vector.append(0.0) as ArrayRealVector
+                val newVec = vector.append(0.0) as ArrayRealVector
+                Log.v("test-newVec", "${newVec.dimension}")
+                launchHistory.put(packageName, newVec)
             }
         }
+        saveState()
     }
 
     suspend fun removeOldDimension(packageName: String){
+        Log.v("test-removeOldDim", "called")
         withContext(Dispatchers.IO){
             val idxToRemove = appToIdxMap[packageName]
             idxToRemove?.let {
                 for ((packageName, vector) in launchHistory) {
                     val newVec = vector.getSubVector(0, idxToRemove).append(
                         vector.getSubVector(idxToRemove+1, vector.dimension-(idxToRemove+1)))
-                    launchHistory[packageName] = newVec as ArrayRealVector?
+                    launchHistory.put(packageName, newVec as ArrayRealVector)
                 }
             }
             appToIdMap.remove(packageName)
             appToIdxMap.remove(packageName)
             idToApp.remove(packageName.hashCode())
         }
+        saveState()
     }
 
     fun sizeTest(){

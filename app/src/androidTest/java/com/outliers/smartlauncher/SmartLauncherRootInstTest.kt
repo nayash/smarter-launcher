@@ -3,6 +3,7 @@ package com.outliers.smartlauncher
 import android.util.Log
 import androidx.test.platform.app.InstrumentationRegistry
 import com.outliers.smartlauncher.core.SmartLauncherRoot
+import org.apache.commons.collections4.map.LinkedMap
 import org.apache.commons.math3.linear.ArrayRealVector
 import org.apache.commons.math3.linear.RealVector
 import org.junit.Before
@@ -55,5 +56,11 @@ class SmartLauncherRootInstTest {
         val newVec = vec2.getSubVector(0, idxToRemove).append(
             vec2.getSubVector(idxToRemove+1, vec2.dimension-(idxToRemove+1)))
         Log.v("test2", newVec.toString())
+
+        val map = LinkedMap<String, ArrayRealVector>()
+        map.put("a", realVec)
+        Log.v("testMap1", "$map")
+        map.put("a", vec2)
+        Log.v("testMap2", "$map")
     }
 }

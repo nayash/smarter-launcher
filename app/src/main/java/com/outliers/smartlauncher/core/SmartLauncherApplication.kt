@@ -73,7 +73,7 @@ class SmartLauncherApplication: Application() {
     private val appInstallBR = object : BroadcastReceiver(){
         override fun onReceive(context: Context?, intent: Intent?) {
             val packageName = intent?.data?.encodedSchemeSpecificPart
-            Log.v("test", "app installed:$packageName")
+            Log.v("test-", "app installed:$packageName")
             smartLauncherRoot?.refreshAppList(1, packageName)
             appListRefreshed.value = true
         }
@@ -82,7 +82,7 @@ class SmartLauncherApplication: Application() {
     private val appUninstallBR = object : BroadcastReceiver(){
         override fun onReceive(context: Context?, intent: Intent?) {
             val packageName = intent?.data?.encodedSchemeSpecificPart
-            Log.v("test", "app uninstalled:$packageName")
+            Log.v("test-", "app uninstalled:$packageName")
             smartLauncherRoot?.refreshAppList(0, packageName)
             appListRefreshed.value = true
         }
