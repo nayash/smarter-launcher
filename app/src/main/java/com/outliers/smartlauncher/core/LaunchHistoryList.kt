@@ -59,26 +59,21 @@ class LaunchHistoryList<K, V>(size: Int = 100): Collection<Tuple<K, V>>{
     override val size: Int
     get() = historyList.size
 
-    override fun iterator(): Iterator<Tuple<K, V>> {
-        return object : MutableIterator<Tuple<K, V>> {
-            private var currentIndex = 0
-            override fun hasNext(): Boolean {
-                return currentIndex < size && historyList.get(currentIndex) != null
-            }
-
-            override fun next(): Tuple<K, V> {
-                return historyList[currentIndex++]
-            }
-
-            override fun remove() {
-                removeAt(currentIndex)  // TODO test before using this
-            }
-        }
+    override fun iterator(): MutableIterator<Tuple<K, V>> {
+        return historyList.listIterator()
     }
 
     override fun contains(element: Tuple<K, V>): Boolean {
         for(tuple in historyList){
             if(element.equals(tuple))
+                return true
+        }
+        return false
+    }
+
+    fun containsKey(elementKey: K): Boolean {
+        for(tuple in historyList){
+            if(tuple.key?.equals(elementKey) == true)
                 return true
         }
         return false
