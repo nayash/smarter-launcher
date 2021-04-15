@@ -19,7 +19,7 @@ class LaunchHistoryList<K, V>(size: Int = 100): Collection<Tuple<K, V>>{
         historyList.removeAt(index)
     }
 
-    private fun getIndexOfKey(key: K): Int{
+    private fun getFirstIndexOfKey(key: K): Int{
         for((i, tuple) in historyList.withIndex()) {
             if (tuple.key?.equals(key) == true) {
                 return i
