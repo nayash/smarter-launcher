@@ -3,6 +3,8 @@ package com.outliers.smartlauncher
 import android.util.Log
 import androidx.test.platform.app.InstrumentationRegistry
 import com.outliers.smartlauncher.core.SmartLauncherRoot
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import org.apache.commons.collections4.map.LinkedMap
 import org.apache.commons.math3.linear.ArrayRealVector
 import org.apache.commons.math3.linear.RealVector
@@ -19,13 +21,14 @@ class SmartLauncherRootInstTest {
     }
 
     @Test
-    fun installedPackagesNonEmpty(){
-        assert(slRoot?.allInstalledApps!!.size > 0)
+    fun singletonTest(){
+        val slRoot2 = SmartLauncherRoot.getInstance(appContext)
+        assert(slRoot2 == slRoot)
     }
 
     @Test
-    fun mapLenSameAsApps(){
-        assert(slRoot?.allInstalledApps?.size == slRoot?.appToIdMap?.size)
+    fun installedPackagesNonEmpty(){
+        assert(slRoot?.allInstalledApps!!.size > 0)
     }
 
     @Test
@@ -62,5 +65,20 @@ class SmartLauncherRootInstTest {
         Log.v("testMap1", "$map")
         map.put("a", vec2)
         Log.v("testMap2", "$map")
+    }
+
+    @Test
+    fun cleanUpHistoryTest(){
+        val appSize = slRoot?.allInstalledApps?.size ?: 100
+        val historyList = slRoot?.launchHistoryList
+        for(i in 0 until 10){
+            historyList?.add(slRoot!!.allInstalledApps[0].packageName, ArrayRealVector(appSize))
+        }
+        historyList?.add(slRoot!!.allInstalledApps[1].packageName, ArrayRealVector(appSize))
+        println("test1 $historyList")
+        assert(historyList?.size == 11)
+        GlobalScope.launch { slRoot?.cleanUpHistory() }
+        println("test2 $historyList")
+        assert(historyList?.size == 10)
     }
 }

@@ -117,5 +117,23 @@ data class AppModel(var appName: String, var packageName: String,
             }
             return appModels
         }
+
+        fun getRandomApps(size:Int = 5): ArrayList<AppModel>{
+            val appModels = ArrayList<AppModel>()
+            for(i in 0 until size){
+                val packageName = "com.test.package$i"
+                val appName = "AppNum$i"
+                val versionName = "1.0"
+                val versionCode = 9876
+                val appIcon = null
+                val launchIntent = null
+                val appModel = AppModel(
+                    appName, packageName,
+                    "", versionName,
+                    0, versionCode, appIcon, launchIntent)
+                appModels.add(appModel)
+            }
+            return appModels
+        }
     }
 }

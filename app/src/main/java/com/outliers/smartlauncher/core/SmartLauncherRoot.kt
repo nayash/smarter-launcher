@@ -24,21 +24,20 @@ import kotlinx.coroutines.channels.Channel
 import org.apache.commons.math3.linear.ArrayRealVector
 import org.json.JSONArray
 import org.json.JSONException
-import org.json.JSONObject
 import java.io.File
 import java.lang.Exception
-import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.math.pow
 
-class SmartLauncherRoot private constructor(val context: Context) {
+class SmartLauncherRoot private constructor(val context: Context,
+                                            val dispatcher: CoroutineDispatcher = Dispatchers.IO) {
 
     val appModels: ArrayList<AppModel> = ArrayList()
-    val appToIdMap: ArrayMap<String, Int> = ArrayMap()  // package to hashcode map
+    val appToIdMap: ArrayMap<String, Int> = ArrayMap()  // package to hashcode map -- TODO no real use; consider removing
     val appToIdxMap: ArrayMap<String, Int> =
         ArrayMap()  // package to index map for ATF construction
-    val idToApp: ArrayMap<Int, String> = ArrayMap()  // reverse Map of appToIdMap
+    val idToApp: ArrayMap<Int, String> = ArrayMap()  // reverse Map of appToIdMap -- TODO no real use; consider removing
     var launchSequence: ArrayList<String> =
         ArrayList(WINDOW_SIZE)  // sequence of last 'window size' package names
 
@@ -56,10 +55,11 @@ class SmartLauncherRoot private constructor(val context: Context) {
         private var outliersLauncherRoot: SmartLauncherRoot? =
             null  // TODO warning--context in static field; memory leak.
 
-        fun getInstance(context: Context): SmartLauncherRoot? {
+        fun getInstance(context: Context,
+                        dispatcher: CoroutineDispatcher=Dispatchers.IO): SmartLauncherRoot? {
             if (outliersLauncherRoot == null) {
                 Log.e("test-slRoot", "calling slRoot constructor")
-                outliersLauncherRoot = SmartLauncherRoot(context)
+                outliersLauncherRoot = SmartLauncherRoot(context, dispatcher)
             }
             return outliersLauncherRoot
         }
@@ -75,7 +75,6 @@ class SmartLauncherRoot private constructor(val context: Context) {
 
     init {
         allInstalledApps
-        initPackageToIdMap()
         // sizeTest()
         loadState()
     }
@@ -91,6 +90,7 @@ class SmartLauncherRoot private constructor(val context: Context) {
                         context
                     )
                 )
+                initPackageToIdMap()
                 sortApplicationsByName(appModels)
                 filterOutUnknownApps(appModels)
                 Log.v("test-Apps", appModels.size.toString())
@@ -125,17 +125,20 @@ class SmartLauncherRoot private constructor(val context: Context) {
             return
         GlobalScope.launch {
             Log.v("test-lseq", "calling processAppSuggestion")
+            println("calling processAppSuggestion")
             processAppSuggestion(packageName)
             Log.v("test-lseq", "called processAppSuggestion")
+            println("called processAppSuggestion")
             if (launchSequence.size >= 3)
                 launchSequence.removeAt(0)  // remove oldest app history
             launchSequence.add(packageName)
             Log.v("test-lSeq", launchSequence.toString())
         }
+        return
     }
 
     suspend fun processAppSuggestion(packageName: String) {
-        withContext(Dispatchers.IO) {
+        withContext(dispatcher) {
             val stime = System.currentTimeMillis()
             val launchVec = genAppLaunchVec(packageName)
             appSuggestions.clear()
@@ -352,7 +355,7 @@ class SmartLauncherRoot private constructor(val context: Context) {
         appToIdMap[packageName] = packageName.hashCode()
         idToApp[packageName.hashCode()] = packageName
         Log.v("test-addNewDim", "called")
-        withContext(Dispatchers.IO) {
+        withContext(dispatcher) {
             for ((i, tuple) in launchHistoryList.withIndex()) {
                 val vector = tuple.value
                 vector?.let {
@@ -367,7 +370,7 @@ class SmartLauncherRoot private constructor(val context: Context) {
 
     suspend fun removeOldDimension(packageName: String) {
         Log.v("test-removeOldDim", "called")
-        withContext(Dispatchers.IO) {
+        withContext(dispatcher) {
             val idxToRemove = appToIdxMap[packageName]
             idxToRemove?.let {
                 for ((i, tuple) in launchHistoryList.withIndex()) {
@@ -517,19 +520,22 @@ class SmartLauncherRoot private constructor(val context: Context) {
         appSuggestionsLiveData.postValue(appSuggestions)
     }
 
-    fun cleanUpHistory() {
+    suspend fun cleanUpHistory() {
+        Log.v("test-cleanUpHist", "${launchHistoryList.size}, $HISTORY_MAX_SIZE")
         if (launchHistoryList.size > HISTORY_MAX_SIZE) {
-            GlobalScope.launch {
+            Log.v("test-hist", "$launchHistoryList")
+            withContext(Dispatchers.IO) {
                 val topHalf: Int = launchHistoryList.size / 2
                 var counterMap = ArrayMap<String, Int>() // package to frequency map
                 for (i in 0 until topHalf) {  // look into the top oldest records only
                     val packageName = launchHistoryList[i].key
                     counterMap[packageName] = counterMap.getOrDefault(packageName, 0) + 1
                 }
-                counterMap = counterMap.entries.sortedBy { -it.value }
-                    .associate { it.toPair() } as ArrayMap<String, Int>
-
-                for((packageName, frequency) in counterMap){
+                /*counterMap = counterMap.entries.sortedBy { -it.value }
+                    .associate { it.toPair() } as ArrayMap<String, Int>*/
+                val counterMap1 = counterMap.toList().sortedBy { (key, value) -> value }.toMap()
+                Log.v("test-counter", "$counterMap1, threshold=${0.01* HISTORY_MAX_SIZE}")
+                for((packageName, frequency) in counterMap1){
                     if(frequency < 0.01* HISTORY_MAX_SIZE){ // frequency less that 1% of MAX size
                         launchHistoryList.removeEntriesWithKey(packageName)
                         Log.v("test-cleanUpHistory", "deleted package: $packageName with $frequency launches")
