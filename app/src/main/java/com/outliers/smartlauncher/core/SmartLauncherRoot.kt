@@ -1,4 +1,4 @@
-package com.outliers.smartlauncher.core
+    package com.outliers.smartlauncher.core
 
 import android.Manifest
 import android.content.Context
@@ -26,6 +26,7 @@ import org.json.JSONArray
 import org.json.JSONException
 import java.io.File
 import java.lang.Exception
+import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.math.pow
@@ -33,13 +34,13 @@ import kotlin.math.pow
 class SmartLauncherRoot private constructor(val context: Context,
                                             val dispatcher: CoroutineDispatcher = Dispatchers.IO) {
 
-    val appModels: ArrayList<AppModel> = ArrayList()
+    val appModels: MutableList<AppModel> = Collections.synchronizedList(mutableListOf<AppModel>())
     val appToIdMap: ArrayMap<String, Int> = ArrayMap()  // package to hashcode map -- TODO no real use; consider removing
     val appToIdxMap: ArrayMap<String, Int> =
         ArrayMap()  // package to index map for ATF construction
     val idToApp: ArrayMap<Int, String> = ArrayMap()  // reverse Map of appToIdMap -- TODO no real use; consider removing
-    var launchSequence: ArrayList<String> =
-        ArrayList(WINDOW_SIZE)  // sequence of last 'window size' package names
+    var launchSequence: MutableList<String> =
+        Collections.synchronizedList(mutableListOf<String>())  // sequence of last 'window size' package names
 
     // String key is used instead of int because int was being converted to String while reading
     // saved states and also "ambiguous overload error" while using function map.get(index)
@@ -95,15 +96,15 @@ class SmartLauncherRoot private constructor(val context: Context,
                 filterOutUnknownApps(appModels)
                 Log.v("test-Apps", appModels.size.toString())
             }
-            return appModels.clone() as ArrayList<AppModel>
+            return appModels.toList() as ArrayList<AppModel>
         }
 
-    fun sortApplicationsByName(appModels: ArrayList<AppModel>) {
+    fun sortApplicationsByName(appModels: MutableList<AppModel>) {
         // Collections.sort(appModels) { (appName), (appName) -> appName.compareTo(appName) }
         appModels.sortBy { it.appName.toLowerCase() }
     }
 
-    fun filterOutUnknownApps(models: ArrayList<AppModel>) {
+    fun filterOutUnknownApps(models: MutableList<AppModel>) {
         val iterator = models.iterator()
         while (iterator.hasNext()) {
             val appModel = iterator.next()
@@ -113,10 +114,12 @@ class SmartLauncherRoot private constructor(val context: Context,
     }
 
     fun initPackageToIdMap() {
-        for ((idx: Int, app: AppModel) in appModels.withIndex()) {
-            appToIdMap[app.packageName] = app.packageName.hashCode()
-            appToIdxMap[app.packageName] = idx
-            idToApp[appToIdMap[app.packageName]] = app.packageName
+        synchronized(appModels) {
+            for ((idx: Int, app: AppModel) in appModels.withIndex()) {
+                appToIdMap[app.packageName] = app.packageName.hashCode()
+                appToIdxMap[app.packageName] = idx
+                idToApp[appToIdMap[app.packageName]] = app.packageName
+            }
         }
     }
 
@@ -161,8 +164,7 @@ class SmartLauncherRoot private constructor(val context: Context,
 
     private suspend fun findKNN(launchVec: ArrayRealVector): ArrayList<AppModel> {
         val appPreds = ArrayList<AppModel>()
-        var appScoresMap =
-            HashMap<String, Double>()  // appPackage to score mapping, to later apply toSrotedMap
+        var appScoresMap = HashMap<String, Double>()  // appPackage to score mapping, to later apply toSrotedMap
         for (tuple in launchHistoryList) {
             val lVecHist = tuple.value
             if(lVecHist != null) {
@@ -264,10 +266,6 @@ class SmartLauncherRoot private constructor(val context: Context,
             launchVec.setEntry(featureIdx++, isWifi)
             Utils.getBatteryLevel(context)?.div(100.0)?.let { launchVec.setEntry(10, it) }
 
-            /* // won't be same if some features are not allowed-- e.g. location settings off or permission not granted
-        if(featureIdx-1 != EXPLICIT_FEATURES_COUNT)
-            throw Exception("Wrong feature construction: $featureIdx, $EXPLICIT_FEATURES_COUNT")*/
-
             for ((i, appPackage) in launchSequence.asReversed().withIndex()) {
                 /**
                  * if app launch history for window=3 is (oldest to latest) [instagram, facebook, Maps] then this loop
@@ -356,12 +354,14 @@ class SmartLauncherRoot private constructor(val context: Context,
         idToApp[packageName.hashCode()] = packageName
         Log.v("test-addNewDim", "called")
         withContext(dispatcher) {
-            for ((i, tuple) in launchHistoryList.withIndex()) {
-                val vector = tuple.value
-                vector?.let {
-                    val newVec = vector.append(0.0) as ArrayRealVector
-                    Log.v("test-newVec", "${newVec.dimension}")
-                    launchHistoryList.updateValueAt(i, newVec)
+            synchronized(launchHistoryList) {
+                for ((i, tuple) in launchHistoryList.withIndex()) {
+                    val vector = tuple.value
+                    vector?.let {
+                        val newVec = vector.append(0.0) as ArrayRealVector
+                        Log.v("test-newVec", "${newVec.dimension}")
+                        launchHistoryList.updateValueAt(i, newVec)
+                    }
                 }
             }
         }
@@ -373,13 +373,18 @@ class SmartLauncherRoot private constructor(val context: Context,
         withContext(dispatcher) {
             val idxToRemove = appToIdxMap[packageName]
             idxToRemove?.let {
-                for ((i, tuple) in launchHistoryList.withIndex()) {
-                    val vector = tuple.value
-                    vector?.let {
-                        val newVec = vector.getSubVector(0, idxToRemove).append(
-                            vector.getSubVector(idxToRemove + 1, vector.dimension - (idxToRemove + 1))
-                        )
-                        launchHistoryList.updateValueAt(i, newVec as ArrayRealVector)
+                synchronized(launchHistoryList) {
+                    for ((i, tuple) in launchHistoryList.withIndex()) {
+                        val vector = tuple.value
+                        vector?.let {
+                            val newVec = vector.getSubVector(0, idxToRemove).append(
+                                vector.getSubVector(
+                                    idxToRemove + 1,
+                                    vector.dimension - (idxToRemove + 1)
+                                )
+                            )
+                            launchHistoryList.updateValueAt(i, newVec as ArrayRealVector)
+                        }
                     }
                 }
             }

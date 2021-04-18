@@ -3,6 +3,7 @@ package com.outliers.smartlauncher
 import android.util.Log
 import androidx.test.platform.app.InstrumentationRegistry
 import com.outliers.smartlauncher.core.SmartLauncherRoot
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.apache.commons.collections4.map.LinkedMap
@@ -11,6 +12,7 @@ import org.apache.commons.math3.linear.RealVector
 import org.junit.Before
 import org.junit.Test
 
+@ExperimentalCoroutinesApi
 class SmartLauncherRootInstTest {
     val appContext = InstrumentationRegistry.getInstrumentation().targetContext
     var slRoot: SmartLauncherRoot? = null

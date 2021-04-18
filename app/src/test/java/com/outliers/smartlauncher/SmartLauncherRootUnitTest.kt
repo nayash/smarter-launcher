@@ -2,6 +2,7 @@ package com.outliers.smartlauncher
 
 import android.content.Context
 import android.os.Looper
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.test.core.app.ApplicationProvider
 import com.outliers.smartlauncher.core.SmartLauncherRoot
 import com.outliers.smartlauncher.models.AppModel
@@ -28,6 +29,8 @@ import kotlin.system.measureTimeMillis
 @ExperimentalCoroutinesApi
 class SmartLauncherRootUnitTest {
 
+    @get:Rule
+    val instantTestExecutorRule = InstantTaskExecutorRule()
     @get:Rule
     var coroutinesTestRule = CoroutineTestRule()
     var slRoot: SmartLauncherRoot? = null
@@ -57,11 +60,14 @@ class SmartLauncherRootUnitTest {
     }
 
     @Test
-    fun appLaunchSeqContent() = runBlockingTest{  // same function doesn't work with Testdispatcher!!
+    fun appLaunchSeqContent() = coroutinesTestRule.testDispatcher.runBlockingTest{  // same function doesn't work with Testdispatcher!!
         for(i in 0 until 5){
             slRoot!!.appLaunched(slRoot!!.allInstalledApps[i].packageName)
         }
-        Thread.sleep(1000)
+        // Thread.sleep(1000)
+        coroutinesTestRule.testDispatcher.advanceUntilIdle()
+        //coroutinesTestRule.testDispatcher.pauseDispatcher()
+        //coroutinesTestRule.testDispatcher.runCurrent()
         assert(slRoot!!.launchSequence[0].endsWith("2"))
         val size = slRoot!!.launchSequence.size
         assert(slRoot!!.launchSequence[size-1].endsWith("4"))
