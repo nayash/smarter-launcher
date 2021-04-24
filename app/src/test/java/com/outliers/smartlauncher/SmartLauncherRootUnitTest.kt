@@ -39,7 +39,7 @@ class SmartLauncherRootUnitTest {
 
     @Before
     fun init(){
-        slRoot = SmartLauncherRoot.getInstance(context, coroutinesTestRule.testDispatcher)
+        slRoot = SmartLauncherRoot.getInstance(context, coroutinesTestRule.testDispatcher)  // coroutinesTestRule.testDispatcher
         slRoot?.appModels?.addAll(AppModel.getRandomApps(5))
         slRoot?.initPackageToIdMap()
     }
@@ -60,12 +60,12 @@ class SmartLauncherRootUnitTest {
     }
 
     @Test
-    fun appLaunchSeqContent() = coroutinesTestRule.testDispatcher.runBlockingTest{  // same function doesn't work with Testdispatcher!!
+    fun appLaunchSeqContent(){  // same function doesn't work with Testdispatcher!!
         for(i in 0 until 5){
             slRoot!!.appLaunched(slRoot!!.allInstalledApps[i].packageName)
+            Thread.sleep(500)
         }
-        // Thread.sleep(1000)
-        coroutinesTestRule.testDispatcher.advanceUntilIdle()
+        // coroutinesTestRule.testDispatcher.advanceUntilIdle()
         //coroutinesTestRule.testDispatcher.pauseDispatcher()
         //coroutinesTestRule.testDispatcher.runCurrent()
         assert(slRoot!!.launchSequence[0].endsWith("2"))
@@ -81,12 +81,12 @@ class SmartLauncherRootUnitTest {
     }
 
     @Test
-    fun launchHistSize() = runBlockingTest{
-        for(i in 0 until 100){
+    fun launchHistSize(){
+        for(i in 0 until 10){
             slRoot!!.appLaunched(slRoot!!.allInstalledApps[0].packageName)
+            Thread.sleep(100)
         }
-        Thread.sleep(1000)
-        assert(slRoot!!.launchHistoryList.size == 100)
+        assert(slRoot!!.launchHistoryList.size == 10)
     }
 
     @After

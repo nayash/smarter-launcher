@@ -75,7 +75,7 @@ class SmartLauncherRoot private constructor(val context: Context,
     }
 
     init {
-        allInstalledApps
+        // allInstalledApps
         // sizeTest()
         loadState()
     }
@@ -136,6 +136,7 @@ class SmartLauncherRoot private constructor(val context: Context,
                 launchSequence.removeAt(0)  // remove oldest app history
             launchSequence.add(packageName)
             Log.v("test-lSeq", launchSequence.toString())
+            println("test-lSeq $launchSequence")
         }
         return
     }
