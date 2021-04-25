@@ -94,7 +94,6 @@ class SmartLauncherRoot private constructor(val context: Context,
                 initPackageToIdMap()
                 sortApplicationsByName(appModels)
                 filterOutUnknownApps(appModels)
-                Log.v("test-Apps", appModels.size.toString())
             }
             return appModels.toList() as ArrayList<AppModel>
         }
@@ -126,7 +125,7 @@ class SmartLauncherRoot private constructor(val context: Context,
     fun appLaunched(packageName: String) {
         if (skip)
             return
-        GlobalScope.launch {
+        CoroutineScope(dispatcher).launch {
             Log.v("test-lseq", "calling processAppSuggestion")
             println("calling processAppSuggestion")
             processAppSuggestion(packageName)
@@ -142,7 +141,7 @@ class SmartLauncherRoot private constructor(val context: Context,
     }
 
     suspend fun processAppSuggestion(packageName: String) {
-        withContext(dispatcher) {
+        coroutineScope {
             val stime = System.currentTimeMillis()
             val launchVec = genAppLaunchVec(packageName)
             appSuggestions.clear()
@@ -165,30 +164,36 @@ class SmartLauncherRoot private constructor(val context: Context,
 
     private suspend fun findKNN(launchVec: ArrayRealVector): ArrayList<AppModel> {
         val appPreds = ArrayList<AppModel>()
-        var appScoresMap = HashMap<String, Double>()  // appPackage to score mapping, to later apply toSrotedMap
-        for (tuple in launchHistoryList) {
-            val lVecHist = tuple.value
-            if(lVecHist != null) {
-                Log.v("test-dimCheck", "${lVecHist.dimension}, ${launchVec.dimension}")
-                val distance = lVecHist.getDistance(launchVec)
-                val similarity = 1 / (distance + EPSILON)
-                var prevScore = appScoresMap[tuple.key] ?: 0.0
-                prevScore += similarity
-                appScoresMap[tuple.key] = prevScore
+        coroutineScope {
+            var appScoresMap =
+                HashMap<String, Double>()  // appPackage to score mapping, to later apply toSrotedMap
+            for (tuple in launchHistoryList) {
+                val lVecHist = tuple.value
+                if (lVecHist != null) {
+                    Log.v("test-dimCheck", "${lVecHist.dimension}, ${launchVec.dimension}")
+                    // println("test-dimCheck ${lVecHist.dimension}, ${launchVec.dimension}")
+                    val distance = lVecHist.getDistance(launchVec)
+                    val similarity = 1 / (distance + EPSILON)
+                    var prevScore = appScoresMap[tuple.key] ?: 0.0
+                    prevScore += similarity
+                    appScoresMap[tuple.key] = prevScore
+                }
             }
+            var breaker = 0
+            Log.v("test-appScores", appScoresMap.toString())
+            appScoresMap = appScoresMap.entries.sortedBy { -it.value }
+                .associate { it.toPair() } as HashMap<String, Double>
+            Log.v("test-appScoreSorted", appScoresMap.toString())
+            for ((packageName, score) in appScoresMap) { // TODO IMP!!!! this is wrong, sort by value not key
+                Utils.getAppByPackage(allInstalledApps, packageName)?.let { appPreds.add(it) }
+                breaker++
+                Log.v("test-app-predictions", "$packageName-->$score")
+                if (breaker >= APP_SUGGESTION_COUNT)
+                    break
+            }
+            println("findKNN scope end")
         }
-        var breaker = 0
-        Log.v("test-appScores", appScoresMap.toString())
-        appScoresMap = appScoresMap.entries.sortedBy { -it.value }
-            .associate { it.toPair() } as HashMap<String, Double>
-        Log.v("test-appScoreSorted", appScoresMap.toString())
-        for ((packageName, score) in appScoresMap) { // TODO IMP!!!! this is wrong, sort by value not key
-            Utils.getAppByPackage(allInstalledApps, packageName)?.let { appPreds.add(it) }
-            breaker++
-            Log.v("test-app-predictions", "$packageName-->$score")
-            if (breaker >= APP_SUGGESTION_COUNT)
-                break
-        }
+        println("findKNN return ${appPreds.size}, $appPreds")
         return appPreds
     }
 
@@ -200,8 +205,9 @@ class SmartLauncherRoot private constructor(val context: Context,
         // TODO this size will change when apps are installed or uninstalled. Need to handle such cases: one possible
         // approach is to remove the appIdx from all launch vectors (for uninstall) and for new installations, add app to bottom of array
         val vecSize = EXPLICIT_FEATURES_COUNT + allInstalledApps.size
+        // println("genAppLaunchVec- $vecSize, $EXPLICIT_FEATURES_COUNT, ${allInstalledApps.size}")
         val launchVec = ArrayRealVector(vecSize)
-        runBlocking {
+        coroutineScope {
             Log.v("test-genLVec", launchVec.dimension.toString())
             var featureIdx = 0
             launchVec.setEntry(featureIdx++, Utils.getDayOfMonth() / 31.0)
@@ -276,6 +282,14 @@ class SmartLauncherRoot private constructor(val context: Context,
                  * if app launch history for window=3 is (oldest to latest) [instagram, facebook, Maps] then this loop
                  * iterates in reversed order (latest to oldest) and calculates ATF values and set to corresponding app index
                  */
+                /**
+                 * if app launch history for window=3 is (oldest to latest) [instagram, facebook, Maps] then this loop
+                 * iterates in reversed order (latest to oldest) and calculates ATF values and set to corresponding app index
+                 */
+                /**
+                 * if app launch history for window=3 is (oldest to latest) [instagram, facebook, Maps] then this loop
+                 * iterates in reversed order (latest to oldest) and calculates ATF values and set to corresponding app index
+                 */
                 val appIdx = appToIdxMap[appPackage]
                 val appValue = APP_USAGE_DECAY_RATE.pow(i)
                 // TODO convert this to nullable expression. Package should be availabe in hashmap if not it should crash
@@ -301,7 +315,7 @@ class SmartLauncherRoot private constructor(val context: Context,
     }
 
     fun refreshAppList(eventType: Int, packageName: String?) {
-        GlobalScope.launch {
+        CoroutineScope(dispatcher).launch {
             appModels.clear()
             allInstalledApps
             skip = true
@@ -354,7 +368,7 @@ class SmartLauncherRoot private constructor(val context: Context,
         appToIdMap[packageName] = packageName.hashCode()
         idToApp[packageName.hashCode()] = packageName
         Log.v("test-addNewDim", "called")
-        withContext(dispatcher) {
+        coroutineScope {
             synchronized(launchHistoryList) {
                 for ((i, tuple) in launchHistoryList.withIndex()) {
                     val vector = tuple.value
@@ -371,7 +385,7 @@ class SmartLauncherRoot private constructor(val context: Context,
 
     suspend fun removeOldDimension(packageName: String) {
         Log.v("test-removeOldDim", "called")
-        withContext(dispatcher) {
+        coroutineScope {
             val idxToRemove = appToIdxMap[packageName]
             idxToRemove?.let {
                 synchronized(launchHistoryList) {
@@ -407,7 +421,7 @@ class SmartLauncherRoot private constructor(val context: Context,
     }
 
     fun saveState() {
-        GlobalScope.launch {
+        CoroutineScope(dispatcher).launch {
             saveLaunchSequence()
             saveLaunchHistory()
             savePreds()
@@ -422,7 +436,7 @@ class SmartLauncherRoot private constructor(val context: Context,
     }
 
     fun loadState() {
-        GlobalScope.launch {
+        CoroutineScope(dispatcher).launch {
             loadLaunchSequence()
             loadLaunchHistory()
             loadPreds()
@@ -530,7 +544,7 @@ class SmartLauncherRoot private constructor(val context: Context,
         Log.v("test-cleanUpHist", "${launchHistoryList.size}, $HISTORY_MAX_SIZE")
         if (launchHistoryList.size > HISTORY_MAX_SIZE) {
             Log.v("test-hist", "$launchHistoryList")
-            withContext(Dispatchers.IO) {
+            coroutineScope {
                 val topHalf: Int = launchHistoryList.size / 2
                 var counterMap = ArrayMap<String, Int>() // package to frequency map
                 for (i in 0 until topHalf) {  // look into the top oldest records only
