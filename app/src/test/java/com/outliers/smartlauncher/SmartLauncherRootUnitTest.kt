@@ -3,6 +3,7 @@ package com.outliers.smartlauncher
 import android.content.Context
 import android.os.Looper
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import androidx.collection.ArrayMap
 import androidx.test.core.app.ApplicationProvider
 import com.outliers.smartlauncher.core.SmartLauncherRoot
 import com.outliers.smartlauncher.models.AppModel
@@ -20,7 +21,8 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.LooperMode
 import kotlin.random.Random
 import kotlin.system.measureTimeMillis
-import org.junit.Assert
+import org.junit.Assert.*
+import org.mockito.Spy
 
 @RunWith(RobolectricTestRunner::class)
 //@RunWith(MockitoJUnitRunner::class)
@@ -102,7 +104,7 @@ class SmartLauncherRootUnitTest {
             Thread.sleep(100)
         }
         println(slRoot?.launchHistoryList?.map { it.key })
-        Assert.assertEquals("${slRoot?.launchHistoryList}", slRoot!!.launchHistoryList.size, 10)
+        assertEquals("${slRoot?.launchHistoryList}", slRoot!!.launchHistoryList.size, 10)
     }
 
     @Test
@@ -114,6 +116,88 @@ class SmartLauncherRootUnitTest {
         }
         println("res ${slRoot?.appSuggestions?.size}")
         assert(slRoot?.appSuggestions?.size == SmartLauncherRoot.APP_SUGGESTION_COUNT)
+    }
+
+    @Test
+    fun launchVecAtfTest(){
+        println("test = launchVecAtfTest")
+        val appIdxs = arrayOf(10, 2, 25)
+        for(i in appIdxs.indices){ // mimic launch of 3 apps with indices as above
+            slRoot!!.appLaunched(slRoot!!.allInstalledApps[appIdxs[i]].packageName)
+            Thread.sleep(100)
+        }
+
+        // mimic launch of any random app
+        slRoot!!.appLaunched(slRoot!!.allInstalledApps[random.nextInt(0, APP_SIZE)].packageName)
+        val launchVec = slRoot?.launchHistoryList?.last()?.value
+        val atfVec = launchVec?.getSubVector(SmartLauncherRoot.EXPLICIT_FEATURES_COUNT, slRoot!!.allInstalledApps.size)
+        val decay = SmartLauncherRoot.APP_USAGE_DECAY_RATE
+        val decayVals = ArrayMap<Int, Double>()
+        for((i, idx) in appIdxs.reversed().withIndex()){
+            decayVals.put(idx, Math.pow(decay, i.toDouble()))
+        }
+        assertNotNull(atfVec)
+        if (atfVec != null) {
+            var counter = 0
+            for(double in atfVec){
+                if(counter in appIdxs){
+                    assertEquals(atfVec.getEntry(counter), decayVals.get(counter))
+                }else{
+                    assertEquals(atfVec.getEntry(counter), 0.0, 0.0)
+                }
+                counter++
+            }
+        }
+    }
+
+    @Test
+    fun appInstallTest(){
+        /**
+         * Check if
+         * 1. launchHistory dim increased
+         * 2. new launchVec dim is correct
+         * 3. 0.0 is inserted to correct idx in history vecs
+         */
+
+        for(i in 0 until 3){ // mimic launch of 3 random apps
+            slRoot!!.appLaunched(slRoot!!.allInstalledApps[random.nextInt(0, APP_SIZE)].packageName)
+            Thread.sleep(100)
+        }
+        val oldDim = slRoot!!.launchHistoryList.last().value.dimension
+        val newApp = AppModel.getRandomApps(1)[0]
+        newApp.packageName = "com.test.package44"
+        newApp.appName = "AppNum44"
+        slRoot!!.refreshAppList(1, newApp.packageName)
+        slRoot!!.appLaunched(slRoot!!.allInstalledApps[random.nextInt(0, APP_SIZE)].packageName)
+        assertEquals(oldDim+1, slRoot!!.launchHistoryList.last().value.dimension)
+
+        // fails because appModels in cleared and refetched internally in the "refresh" function
+        // which is actually EmptyList. Try Spy of SLRoot
+    }
+
+    @Test
+    fun appUninstallTest(){
+        /**
+         * Check if
+         * 1. launchHistory dim reduced
+         * 2. new launchVec dim is correct
+         * 3. correct idx value is removed from history vecs
+         */
+    }
+
+    @Test
+    fun saveStateTest(){
+
+    }
+
+    @Test
+    fun loadStateTest(){
+
+    }
+
+    @Test
+    fun cleanUpHistoryTest(){
+
     }
 
     @After

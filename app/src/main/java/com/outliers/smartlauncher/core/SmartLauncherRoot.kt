@@ -1,4 +1,4 @@
-    package com.outliers.smartlauncher.core
+package com.outliers.smartlauncher.core
 
 import android.Manifest
 import android.content.Context
@@ -100,15 +100,19 @@ class SmartLauncherRoot private constructor(val context: Context,
 
     fun sortApplicationsByName(appModels: MutableList<AppModel>) {
         // Collections.sort(appModels) { (appName), (appName) -> appName.compareTo(appName) }
-        appModels.sortBy { it.appName.toLowerCase() }
+        synchronized(appModels) {
+            appModels.sortBy { it.appName.toLowerCase() }
+        }
     }
 
     fun filterOutUnknownApps(models: MutableList<AppModel>) {
-        val iterator = models.iterator()
-        while (iterator.hasNext()) {
-            val appModel = iterator.next()
-            if (!isValidString(appModel.appName) || appModel.launchIntent == null)
-                iterator.remove()
+        synchronized(models) {
+            val iterator = models.iterator()
+            while (iterator.hasNext()) {
+                val appModel = iterator.next()
+                if (!isValidString(appModel.appName) || appModel.launchIntent == null)
+                    iterator.remove()
+            }
         }
     }
 
@@ -278,21 +282,9 @@ class SmartLauncherRoot private constructor(val context: Context,
                  * if app launch history for window=3 is (oldest to latest) [instagram, facebook, Maps] then this loop
                  * iterates in reversed order (latest to oldest) and calculates ATF values and set to corresponding app index
                  */
-                /**
-                 * if app launch history for window=3 is (oldest to latest) [instagram, facebook, Maps] then this loop
-                 * iterates in reversed order (latest to oldest) and calculates ATF values and set to corresponding app index
-                 */
-                /**
-                 * if app launch history for window=3 is (oldest to latest) [instagram, facebook, Maps] then this loop
-                 * iterates in reversed order (latest to oldest) and calculates ATF values and set to corresponding app index
-                 */
-                /**
-                 * if app launch history for window=3 is (oldest to latest) [instagram, facebook, Maps] then this loop
-                 * iterates in reversed order (latest to oldest) and calculates ATF values and set to corresponding app index
-                 */
                 val appIdx = appToIdxMap[appPackage]
                 val appValue = APP_USAGE_DECAY_RATE.pow(i)
-                // TODO convert this to nullable expression. Package should be availabe in hashmap if not it should crash
+                // TODO convert this to nullable expression. Package should be available in hashmap if not it should crash
                 if (appIdx == null)
                     Log.e(
                         "test-packageNull",
