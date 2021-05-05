@@ -50,6 +50,8 @@ class LaunchHistoryList<K, V>(size: Int = 100) : Collection<Tuple<K, V>> {
     }*/
 
     fun getValueAt(index: Int): V? {
+        if(index >= size)
+            return null
         return historyList[index].value
     }
 

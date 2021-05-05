@@ -20,6 +20,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var appListCopy: ArrayList<AppModel> = smartLauncherRoot?.allInstalledApps ?: ArrayList()
     var appList: ArrayList<AppModel> = appListCopy.clone() as ArrayList<AppModel>
 
+    init{
+        Log.d("test-VM", "allInstalled called")
+    }
+
     fun searchTextChanged(s: String){
         if (s.isEmpty()) {
             appList.clear()

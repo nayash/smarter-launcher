@@ -34,7 +34,7 @@ import kotlin.math.pow
 class SmartLauncherRoot private constructor(val context: Context,
                                             val dispatcher: CoroutineDispatcher = Dispatchers.IO) {
 
-    val appModels: MutableList<AppModel> = Collections.synchronizedList(mutableListOf<AppModel>())
+    val appModels: MutableList<AppModel> = Collections.synchronizedList(mutableListOf<AppModel>())  // TODO consider using CopyOnWriteArrayList !!
     val appToIdMap: ArrayMap<String, Int> = ArrayMap()  // package to hashcode map -- TODO no real use; consider removing
     val appToIdxMap: ArrayMap<String, Int> =
         ArrayMap()  // package to index map for ATF construction
@@ -82,6 +82,7 @@ class SmartLauncherRoot private constructor(val context: Context,
 
     val allInstalledApps: ArrayList<AppModel>
         get() {
+            Log.d("test-allInstalledApps", appModels.size.toString())
             if (appModels.size == 0) {
                 //allInstalledApps.clear()
                 appModels.addAll(
@@ -94,6 +95,7 @@ class SmartLauncherRoot private constructor(val context: Context,
                 initPackageToIdMap()
                 sortApplicationsByName(appModels)
                 filterOutUnknownApps(appModels)
+                Log.d("test-allInstalledApps", "added--${appModels.size}")
             }
             return appModels.toList() as ArrayList<AppModel>
         }
@@ -109,7 +111,7 @@ class SmartLauncherRoot private constructor(val context: Context,
         synchronized(models) {
             val iterator = models.iterator()
             while (iterator.hasNext()) {
-                val appModel = iterator.next()
+                val appModel = iterator.next()  // TODO ConcurrentModifEx here
                 if (!isValidString(appModel.appName) || appModel.launchIntent == null)
                     iterator.remove()
             }
@@ -309,6 +311,7 @@ class SmartLauncherRoot private constructor(val context: Context,
     fun refreshAppList(eventType: Int, packageName: String?) {
         CoroutineScope(dispatcher).launch {
             appModels.clear()
+            Log.d("test-refreshAppList", appModels.size.toString())
             allInstalledApps
             skip = true
 
@@ -316,6 +319,7 @@ class SmartLauncherRoot private constructor(val context: Context,
                 val vecTemp = launchHistoryList.getValueAt(0)
                 vecTemp?.let {
                     val oldSize = vecTemp.dimension - EXPLICIT_FEATURES_COUNT
+                    Log.d("test-refreshAppList", "event installed if check")
                     if (oldSize + 1 != allInstalledApps.size || appToIdMap.contains(packageName)) {
                         // something unexpected happened. log it!
                         FirebaseCrashlytics.getInstance().log(
@@ -332,6 +336,7 @@ class SmartLauncherRoot private constructor(val context: Context,
                 val vecTemp = launchHistoryList.getValueAt(0)
                 vecTemp?.let {
                     val oldSize = vecTemp.dimension - EXPLICIT_FEATURES_COUNT
+                    Log.d("test-refreshAppList", "event uninstalled if check")
                     if (oldSize - 1 != allInstalledApps.size || !appToIdMap.contains(packageName)) {
                         // something unexpected happened. log it!
                         FirebaseCrashlytics.getInstance().log(
@@ -443,6 +448,8 @@ class SmartLauncherRoot private constructor(val context: Context,
     }
 
     suspend fun saveLaunchSequence() {
+        if(launchSequence.size == 0)
+            return
         val fileLaunchSeq = File(
             Utils.getAppFolderInternal(context),
             Constants.LAUNCH_SEQUENCE_SAVE_FILE
@@ -451,6 +458,8 @@ class SmartLauncherRoot private constructor(val context: Context,
     }
 
     suspend fun saveLaunchHistory() {
+        if(launchHistoryList.isEmpty())
+            return
         val file = File(
             Utils.getAppFolderInternal(context),
             Constants.LAUNCH_HISTORY_SAVE_FILE
@@ -461,6 +470,8 @@ class SmartLauncherRoot private constructor(val context: Context,
     }
 
     suspend fun savePreds() {
+        if(appSuggestions.isEmpty())
+            return
         val file = File(
             Utils.getAppFolderInternal(context),
             Constants.APP_SUGGESTIONS_SAVE_FILE
@@ -523,6 +534,7 @@ class SmartLauncherRoot private constructor(val context: Context,
         appSuggestions.clear()
         if (temp != null) {
             for (packageName in temp) {
+                Log.d("test-loadPreds", "loop")
                 for (appModel in allInstalledApps) {
                     if (appModel.packageName.equals(packageName, true))
                         appSuggestions.add(appModel)
