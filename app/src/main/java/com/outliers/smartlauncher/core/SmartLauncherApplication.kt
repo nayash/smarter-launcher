@@ -29,6 +29,7 @@ class SmartLauncherApplication: Application() {
         intentFilterUninstalled.addDataScheme("package")
         registerReceiver(appUninstallBR, intentFilterUninstalled)
 
+        Log.d("test-slApplication", "calling root")
         smartLauncherRoot = SmartLauncherRoot.getInstance(this)
 
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()

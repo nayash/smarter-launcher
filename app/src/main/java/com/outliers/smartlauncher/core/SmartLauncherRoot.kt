@@ -83,21 +83,23 @@ class SmartLauncherRoot private constructor(val context: Context,
     val allInstalledApps: ArrayList<AppModel>
         get() {
             Log.d("test-allInstalledApps", appModels.size.toString())
-            if (appModels.size == 0) {
-                //allInstalledApps.clear()
-                appModels.addAll(
-                    getAppModelsFromPackageInfoList(
-                        context.packageManager.getInstalledPackages(0),
-                        context.packageManager.getInstalledApplications(0),
-                        context
+            synchronized(appModels) {
+                if (appModels.size == 0) {
+                    //allInstalledApps.clear()
+                    appModels.addAll(
+                        getAppModelsFromPackageInfoList(
+                            context.packageManager.getInstalledPackages(0),
+                            context.packageManager.getInstalledApplications(0),
+                            context
+                        )
                     )
-                )
-                initPackageToIdMap()
-                sortApplicationsByName(appModels)
-                filterOutUnknownApps(appModels)
-                Log.d("test-allInstalledApps", "added--${appModels.size}")
+                    initPackageToIdMap()
+                    sortApplicationsByName(appModels)
+                    filterOutUnknownApps(appModels)
+                    Log.d("test-allInstalledApps", "added--${appModels.size}")
+                }
+                return appModels.toList() as ArrayList<AppModel>
             }
-            return appModels.toList() as ArrayList<AppModel>
         }
 
     fun sortApplicationsByName(appModels: MutableList<AppModel>) {
@@ -536,6 +538,7 @@ class SmartLauncherRoot private constructor(val context: Context,
             for (packageName in temp) {
                 Log.d("test-loadPreds", "loop")
                 for (appModel in allInstalledApps) {
+                    Log.d("test-loadPreds", "inside loop")
                     if (appModel.packageName.equals(packageName, true))
                         appSuggestions.add(appModel)
                 }
