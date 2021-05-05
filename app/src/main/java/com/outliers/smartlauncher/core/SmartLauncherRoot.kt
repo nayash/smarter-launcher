@@ -35,6 +35,7 @@ class SmartLauncherRoot private constructor(val context: Context,
                                             val dispatcher: CoroutineDispatcher = Dispatchers.IO) {
 
     val appModels: MutableList<AppModel> = Collections.synchronizedList(mutableListOf<AppModel>())  // TODO consider using CopyOnWriteArrayList !!
+    val liveAppModels: MutableLiveData<MutableList<AppModel>> = MutableLiveData()
     val appToIdMap: ArrayMap<String, Int> = ArrayMap()  // package to hashcode map -- TODO no real use; consider removing
     val appToIdxMap: ArrayMap<String, Int> =
         ArrayMap()  // package to index map for ATF construction
@@ -97,6 +98,7 @@ class SmartLauncherRoot private constructor(val context: Context,
                     sortApplicationsByName(appModels)
                     filterOutUnknownApps(appModels)
                     Log.d("test-allInstalledApps", "added--${appModels.size}")
+                    liveAppModels.postValue(appModels)
                 }
                 return appModels.toList() as ArrayList<AppModel>
             }
@@ -286,14 +288,12 @@ class SmartLauncherRoot private constructor(val context: Context,
                  * if app launch history for window=3 is (oldest to latest) [instagram, facebook, Maps] then this loop
                  * iterates in reversed order (latest to oldest) and calculates ATF values and set to corresponding app index
                  */
+                // appIdx could be null in cases where one of the apps in the launch sequence has been uninstalled
                 val appIdx = appToIdxMap[appPackage]
+                if(appIdx == null)
+                    continue
                 val appValue = APP_USAGE_DECAY_RATE.pow(i)
-                // TODO convert this to nullable expression. Package should be available in hashmap if not it should crash
-                if (appIdx == null)
-                    Log.e(
-                        "test-packageNull",
-                        "$appPackage --- ${appToIdxMap.size}, ${allInstalledApps.size}"
-                    )
+
                 launchVec.setEntry(
                     EXPLICIT_FEATURES_COUNT + appIdx!!,
                     appValue
@@ -538,7 +538,7 @@ class SmartLauncherRoot private constructor(val context: Context,
             for (packageName in temp) {
                 Log.d("test-loadPreds", "loop")
                 for (appModel in allInstalledApps) {
-                    Log.d("test-loadPreds", "inside loop")
+                    // Log.d("test-loadPreds", "inside loop")
                     if (appModel.packageName.equals(packageName, true))
                         appSuggestions.add(appModel)
                 }

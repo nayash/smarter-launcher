@@ -37,6 +37,7 @@ import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.crashlytics.internal.common.CrashlyticsCore
 import com.outliers.smartlauncher.R
 import com.outliers.smartlauncher.core.MainViewModel
+import com.outliers.smartlauncher.core.MainViewModelFactory
 import com.outliers.smartlauncher.core.RVItemDecoration
 import com.outliers.smartlauncher.core.SmartLauncherApplication
 import com.outliers.smartlauncher.databinding.ActivityMainBinding
@@ -48,13 +49,15 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.*
+import kotlin.collections.ArrayList
 
 
-class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnClickListener {
+class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnClickListener,
+    MainViewModel.MainVMParent {
 
     val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
-    val viewModel by lazy { ViewModelProviders.of(this).get(MainViewModel::class.java) }
-    lateinit var adapter: AppsRVAdapter
+    lateinit var viewModel: MainViewModel
+    var adapter: AppsRVAdapter? = null
     val sheetBehavior by lazy { BottomSheetBehavior.from(binding.appListSheet) }
     val appPredViewGroup by lazy { binding.rlPredApps }
     lateinit var etSearch: EditText
@@ -63,6 +66,9 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
+
+        val vmFactory = MainViewModelFactory(application as SmartLauncherApplication, this)
+        viewModel = ViewModelProviders.of(this, vmFactory).get(MainViewModel::class.java)
 
         etSearch = binding.appListSheet.findViewById(R.id.et_search)
         val ivSearchSearch = binding.appListSheet.findViewById<ImageView>(R.id.iv_right_search)
@@ -78,7 +84,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
             }
 
             override fun afterTextChanged(s: Editable?) {
-                if (s != null && s?.length > 0) {
+                if (s != null && s.isNotEmpty()) {
                     // show cross
                     ivSearchSearch.visibility = View.GONE
                     ivSearchClose.visibility = View.VISIBLE
@@ -142,7 +148,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         (application as SmartLauncherApplication).appListRefreshed.let { it ->
             it.observe(this, { bool ->
                 if (bool) {
-                    adapter.notifyDataSetChanged()
+                    adapter?.notifyDataSetChanged()
                 }
                 if (it.value != bool)
                     it.value = bool
@@ -157,23 +163,23 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         // displayNewSuggestions(viewModel.appList.take(7) as ArrayList<AppModel>)
 
         crashPrompt()
-        if(!Utils.isMyAppLauncherDefault(this))
+        if (!Utils.isMyAppLauncherDefault(this))
             askForDefaultLauncher()
 
         Log.v("test-oncreate", "main activity onCreate called")
-        Toast.makeText(this,"Launcher onCreate called!!", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, "Launcher onCreate called!!", Toast.LENGTH_LONG).show()
 
         Handler(Looper.getMainLooper()).postDelayed(Runnable {
             Utils.hideKeyboard(this)
         }, 1000)
     }
 
-    fun askForDefaultLauncher(){
-        if(Build.VERSION.SDK_INT >= 29) {
+    fun askForDefaultLauncher() {
+        if (Build.VERSION.SDK_INT >= 29) {
             val roleManager = getSystemService(Context.ROLE_SERVICE) as RoleManager
             val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_HOME)
             startActivityForResult(intent, 1)
-        }else{
+        } else {
             /*val intent = Intent()
             intent.action = Intent.ACTION_MAIN
             intent.addCategory(Intent.CATEGORY_HOME)
@@ -184,24 +190,29 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         }
     }
 
-    fun crashPrompt(){
+    fun crashPrompt() {
         val crashRestart: Boolean =
             viewModel.smartLauncherRoot?.launcherPref?.getBoolean("crash_restart", false) == true
         if (crashRestart || FirebaseCrashlytics.getInstance().didCrashOnPreviousExecution()) {
             /*val intent = Intent(this, CrashHandlerActivity::class.java)
             intent.putExtra("crash_id", mSharedPreferences.getString("crash_id", ""))
             startActivity(intent)*/
-            viewModel.smartLauncherRoot?.launcherPref?.edit()?.putBoolean("crash_restart", false)?.apply()
+            viewModel.smartLauncherRoot?.launcherPref?.edit()?.putBoolean("crash_restart", false)
+                ?.apply()
             // mSharedPreferences.edit().putString("crash_id", "").apply()
             // Crashlytics.setString("crash_id", "")
-            Toast.makeText(this, "crash restart!! $crashRestart," +
-                    " ${FirebaseCrashlytics.getInstance().didCrashOnPreviousExecution()}", Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                this,
+                "crash restart!! $crashRestart," +
+                        " ${FirebaseCrashlytics.getInstance().didCrashOnPreviousExecution()}",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
     fun searchApp(s: String) {
         viewModel.searchTextChanged(s)
-        adapter.notifyDataSetChanged()
+        adapter?.notifyDataSetChanged()
     }
 
     override fun onItemClick(position: Int, appModel: AppModel, extras: Bundle?) {
@@ -218,7 +229,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         val popupMenu = PopupMenu(this, view)
         popupMenu.menuInflater.inflate(R.menu.app_popup, popupMenu.menu)
         popupMenu.setOnMenuItemClickListener {
-            when(it.itemId){
+            when (it.itemId) {
                 R.id.menu_app_options -> startAppDetailsActivity(packageName)
             }
             return@setOnMenuItemClickListener true
@@ -240,15 +251,16 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
                 getString(R.string.location_permission_rationale),
                 posLambda, negLambda
             )
-        }else{ // granted
+        } else { // granted
             if (Utils.isLocationEnabled(this)) {
                 val fusedLocationClient: FusedLocationProviderClient =
                     LocationServices.getFusedLocationProviderClient(this)
                 fusedLocationClient.getCurrentLocation(
                     LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY,
-                    null).addOnSuccessListener { location ->
-                        location?.let{viewModel.updateLocationCache(it)}
-                    }
+                    null
+                ).addOnSuccessListener { location ->
+                    location?.let { viewModel.updateLocationCache(it) }
+                }
             } else {
                 Toast.makeText(
                     this, getString(R.string.location_disabled),
@@ -337,7 +349,8 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         val appIconDim = (0.8 * block).toFloat()
         var horizontalSpace = block - appIconDim
         //}
-        val verticalSpace = Utils.convertDpToPixel(resources.getDimension(R.dimen.app_vertical_space))
+        val verticalSpace =
+            Utils.convertDpToPixel(resources.getDimension(R.dimen.app_vertical_space))
 
         Log.d(
             "test-predDraw", "width: $width, iconDim: $appIconDim, hs: $horizontalSpace, " +
@@ -351,7 +364,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
             val appView: View = layoutInflater.inflate(R.layout.item_app, null)
             val col = (idx % appsPerRow)
             val row = idx / appsPerRow
-            if(col == 0) {
+            if (col == 0) {
                 tableRow = TableRow(this)
                 val layoutParams = TableLayout.LayoutParams(
                     TableLayout.LayoutParams.MATCH_PARENT,
@@ -379,13 +392,13 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
             }
             tableRow?.addView(appView)
 
-            if(col == appsPerRow-1) {
+            if (col == appsPerRow - 1) {
                 appPredViewGroup.addView(tableRow)
                 tableRow = null
             }
         }
 
-        if(tableRow != null){
+        if (tableRow != null) {
             appPredViewGroup.addView(tableRow)
         }
 
@@ -393,7 +406,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
     }
 
     fun displayNewSuggestions2(apps: ArrayList<AppModel>) {
-        if(appPredAdapter == null){
+        if (appPredAdapter == null) {
             appPredAdapter = AppsRVAdapter(apps, this, object : AppsRVAdapter.IAppsRVAdapter {
                 // using this anonymous instance instead of activity impl to accommodate any future processing for clicks
                 // from app suggestion screen
@@ -420,7 +433,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
 
     override fun onClick(v: View?) {
         val id = v?.id
-        when(id){
+        when (id) {
             R.id.iv_right_cross -> etSearch.setText("")
         }
     }
@@ -468,7 +481,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         }
     }
 
-    fun startAppDetailsActivity(packageName: String){
+    fun startAppDetailsActivity(packageName: String) {
         try {
             //Open the specific App Info page:
             val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
@@ -479,6 +492,14 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
             //Open the generic Apps page:
             val intent = Intent(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS)
             startActivity(intent)
+        }
+    }
+
+    override fun refreshAppList(apps: ArrayList<AppModel>) {
+        adapter?.let {
+            it.appModels = apps
+            it.notifyDataSetChanged()
+            Log.v("test-refreshAppListAct", "called in activity")
         }
     }
 }

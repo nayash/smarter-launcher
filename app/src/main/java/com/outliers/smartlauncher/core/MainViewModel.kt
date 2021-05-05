@@ -8,13 +8,18 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat.startActivity
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.outliers.smartlauncher.models.AppModel
 import java.util.*
 import kotlin.collections.ArrayList
 
-class MainViewModel(application: Application) : AndroidViewModel(application) {
+class MainViewModel(application: Application, parent: MainVMParent) : ViewModel() {
+
+    interface MainVMParent{
+        fun refreshAppList(apps: ArrayList<AppModel>)
+    }
 
     val smartLauncherRoot = SmartLauncherRoot.getInstance(application)
     var appListCopy: ArrayList<AppModel> = smartLauncherRoot?.allInstalledApps ?: ArrayList()
@@ -22,6 +27,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     init{
         Log.d("test-VM", "allInstalled called")
+        smartLauncherRoot?.let { it.liveAppModels.observeForever {
+            appListCopy = smartLauncherRoot.allInstalledApps
+            appList = appListCopy.clone() as ArrayList<AppModel>
+            Log.d("test-observer", "appsList observer called in VM")
+            parent.refreshAppList(appList)
+        }
+        }
     }
 
     fun searchTextChanged(s: String){

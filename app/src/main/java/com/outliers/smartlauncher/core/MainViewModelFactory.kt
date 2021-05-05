@@ -1,14 +1,23 @@
 package com.outliers.smartlauncher.core
 
-import android.app.Activity
-import android.app.Application
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelProviders
 
-class MainViewModelFactory(private val activity: Activity) :
-    ViewModelProvider.Factory {
+class MainViewModelFactory(
+    val application: SmartLauncherApplication,
+    val parentView: MainViewModel.MainVMParent
+) : ViewModelProvider.Factory {
+
     override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-        return MainViewModelFactory(activity) as T
+        return when(modelClass){
+            MainViewModel::class.java -> MainViewModel(application, parentView)
+            else -> throw IllegalArgumentException("view class not supported")
+        } as T
+        /*return modelClass.getConstructor(
+            SmartLauncherApplication::class.java,
+            MainViewModel.MainVMParent::class.java
+        ).newInstance(application, parentView)*/
     }
+
 }
