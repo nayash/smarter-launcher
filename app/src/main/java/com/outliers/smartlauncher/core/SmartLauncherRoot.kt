@@ -321,8 +321,8 @@ class SmartLauncherRoot private constructor(val context: Context,
                 val vecTemp = launchHistoryList.getValueAt(0)
                 vecTemp?.let {
                     val oldSize = vecTemp.dimension - EXPLICIT_FEATURES_COUNT
-                    Log.d("test-refreshAppList", "event installed if check")
-                    if (oldSize + 1 != allInstalledApps.size || appToIdMap.contains(packageName)) {
+                    Log.d("test-refreshAppList", "event installed if check--$oldSize, ${allInstalledApps.size}")
+                    if (oldSize + 1 != allInstalledApps.size) {
                         // something unexpected happened. log it!
                         FirebaseCrashlytics.getInstance().log(
                             "installed package prob: $packageName," +
@@ -338,8 +338,8 @@ class SmartLauncherRoot private constructor(val context: Context,
                 val vecTemp = launchHistoryList.getValueAt(0)
                 vecTemp?.let {
                     val oldSize = vecTemp.dimension - EXPLICIT_FEATURES_COUNT
-                    Log.d("test-refreshAppList", "event uninstalled if check")
-                    if (oldSize - 1 != allInstalledApps.size || !appToIdMap.contains(packageName)) {
+                    Log.d("test-refreshAppList", "event uninstalled if check--$oldSize, ${allInstalledApps.size}")
+                    if (oldSize - 1 != allInstalledApps.size) {
                         // something unexpected happened. log it!
                         FirebaseCrashlytics.getInstance().log(
                             "uninstalled package prob: $packageName," +
