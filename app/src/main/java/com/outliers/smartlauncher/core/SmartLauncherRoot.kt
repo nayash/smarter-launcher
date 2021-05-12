@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import android.util.Log
+import android.widget.Toast
 import androidx.collection.ArrayMap
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.MutableLiveData
@@ -136,16 +137,20 @@ class SmartLauncherRoot private constructor(val context: Context,
         if (skip)
             return
         CoroutineScope(dispatcher).launch {
-            Log.v("test-lseq", "calling processAppSuggestion")
-            println("calling processAppSuggestion")
-            processAppSuggestion(packageName)
-            Log.v("test-lseq", "called processAppSuggestion")
-            println("called processAppSuggestion")
-            if (launchSequence.size >= 3)
-                launchSequence.removeAt(0)  // remove oldest app history
-            launchSequence.add(packageName)
-            Log.v("test-lSeq", launchSequence.toString())
-            println("test-lSeq $launchSequence")
+            try { // only to avoid crashes so that algorithm can be tested in real env. remove later and fix all crashes lazy bum
+                Log.v("test-lseq", "calling processAppSuggestion")
+                println("calling processAppSuggestion")
+                processAppSuggestion(packageName)
+                Log.v("test-lseq", "called processAppSuggestion")
+                println("called processAppSuggestion")
+                if (launchSequence.size >= 3)
+                    launchSequence.removeAt(0)  // remove oldest app history
+                launchSequence.add(packageName)
+                Log.v("test-lSeq", launchSequence.toString())
+                println("test-lSeq $launchSequence")
+            }catch (ex: Exception){
+                Toast.makeText(context, "Exception: ${ex.message}", Toast.LENGTH_LONG).show()
+            }
         }
         return
     }

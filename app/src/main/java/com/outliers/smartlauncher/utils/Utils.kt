@@ -300,7 +300,7 @@ object Utils {
         try {
             Log.v("writeToFile", "obj = $objectToWrite")
             withContext(Dispatchers.IO) {
-                val serializedObj = Gson().toJson(objectToWrite)
+                val serializedObj = Gson().toJson(objectToWrite)  // TODO handle concurrent modification exception
                 val fos: FileOutputStream = FileOutputStream(path)
                 val os = ObjectOutputStream(fos)
                 os.writeObject(serializedObj)
