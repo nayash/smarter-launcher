@@ -1,21 +1,19 @@
-package com.outliers.smartlauncher.utils;
+package com.outliers.smartlauncher.debugtools.loghelper;
 
 import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.StatFs;
 import android.util.Log;
 
 import com.outliers.smartlauncher.BuildConfig;
 import com.outliers.smartlauncher.consts.Constants;
-import com.outliers.smartlauncher.core.SmartLauncherRoot;
+import com.outliers.smartlauncher.utils.Utils;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -225,20 +223,21 @@ public class LogHelper {
 
 
     //<editor-fold desc="Log File Delete Methods">
-    public void getAllFilesInDir(){ /** Only for testing purpose **/
+    public String[] getAllFilesInDir(){
         File directory = new File(logFile.getParent());
         File[] files = directory.listFiles();
-        //Log.e("getAllFilesInDir", "Size: "+ files.length);
+        String[] paths = new String[files.length];
+        Log.d("getAllFilesInDir", "Size: "+ files.length);
         for (int i = 0; i < files.length; i++)
         {
-            //Log.e("getAllFilesInDir", "FileName:" + files[i].getName());
+            Log.d("getAllFilesInDir", "FileName:" + files[i].getName());
+            paths[i] = files[i].getAbsolutePath();
         }
+        return paths;
     }
 
-    public void printLogFileContent(){ /** Only for testing purpose **/
-        BufferedReader br = null;
-        try {
-            br = new BufferedReader(new FileReader(logFile.getAbsolutePath()));
+    public void printLogFileContent(){
+        try (BufferedReader br = new BufferedReader(new FileReader(logFile.getAbsolutePath()))) {
             StringBuilder sb = new StringBuilder();
             String line = br.readLine();
             while (line != null) {
@@ -246,32 +245,34 @@ public class LogHelper {
                 sb.append("\n");
                 line = br.readLine();
             }
-            //Log.e("printLogFileContentLast",sb.toString().substring(sb.length()-300,sb.length()-1));
-        } catch (FileNotFoundException e) {
-            //Log.e("FileNoF","E",e);
-        } catch (IOException e) {
-            //Log.e("IOE","E",e);
-        }catch(Exception ex){
+        } catch (Exception ex) {
             //Log.e("Error","printFileContent",ex);
-        } finally {
-            try {
-                if(br != null)
-                    br.close();
-            } catch (IOException e) {
-                //Log.e("IOE2","E",e);
-            }
         }
+    }
+
+    public String getFileContent(String filePath){
+        StringBuilder sb = new StringBuilder();
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            String line = br.readLine();
+            while (line != null) {
+                sb.append(line);
+                sb.append("\n");
+                line = br.readLine();
+            }
+        } catch (Exception ex) {
+            Log.e("Error","printFileContent", ex);
+        }
+        return sb.toString();
     }
 
     public void deleteLogFile_NameLike(String fileNameLike){
         File directory = new File(logFile.getParent());
         File[] files = directory.listFiles();
         //Log.e("deleteLogFile_NameLike", "Size: "+ files.length);
-        for (int i = 0; i < files.length; i++)
-        {
+        for (File file : files) {
             //Log.e("deleteLogFile_NameLike", "FileName:" + files[i].getName());
-            if(files[i].getName().contains(fileNameLike)){
-                files[i].delete();
+            if (file.getName().contains(fileNameLike)) {
+                file.delete();
             }
         }
     }
@@ -280,11 +281,10 @@ public class LogHelper {
         File directory = new File(logFile.getParent());
         File[] files = directory.listFiles();
         //Log.e("deleteLog_NameNotLike", "Size: "+ files.length);
-        for (int i = 0; i < files.length; i++)
-        {
+        for (File file : files) {
             //Log.e("deleteLog_NameNotLike", "FileName:" + files[i].getName());
-            if(!files[i].getName().contains(fileNameLike)){
-                files[i].delete();
+            if (!file.getName().contains(fileNameLike)) {
+                file.delete();
             }
         }
     }

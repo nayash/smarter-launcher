@@ -34,7 +34,6 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.firebase.crashlytics.FirebaseCrashlytics
-import com.google.firebase.crashlytics.internal.common.CrashlyticsCore
 import com.outliers.smartlauncher.R
 import com.outliers.smartlauncher.core.MainViewModel
 import com.outliers.smartlauncher.core.MainViewModelFactory
@@ -42,11 +41,9 @@ import com.outliers.smartlauncher.core.RVItemDecoration
 import com.outliers.smartlauncher.core.SmartLauncherApplication
 import com.outliers.smartlauncher.databinding.ActivityMainBinding
 import com.outliers.smartlauncher.models.AppModel
-import com.outliers.smartlauncher.utils.LogHelper
+import com.outliers.smartlauncher.debugtools.loghelper.LogHelper
+import com.outliers.smartlauncher.debugtools.loghelper.LogsActivity
 import com.outliers.smartlauncher.utils.Utils
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.*
 import kotlin.collections.ArrayList
@@ -172,6 +169,19 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         Handler(Looper.getMainLooper()).postDelayed(Runnable {
             Utils.hideKeyboard(this)
         }, 1000)
+
+        binding.root.setOnLongClickListener {
+            val popupMenu = PopupMenu(this, it)
+            popupMenu.menuInflater.inflate(R.menu.activity_main_menu, popupMenu.menu)
+            popupMenu.setOnMenuItemClickListener {
+                when (it.itemId) {
+                    R.id.menu_log_files -> startLogFilesActivity()
+                }
+                return@setOnMenuItemClickListener true
+            }
+            popupMenu.show()
+            true
+        }
     }
 
     fun askForDefaultLauncher() {
@@ -438,49 +448,6 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         }
     }
 
-    private fun shareLogs() {  // TODO use this to share logs. skipping it for now.
-        LogHelper.getLogHelper(this).flush() // flush any queued logs before sharing logs
-        val intent = Intent(Intent.ACTION_SEND)
-        intent.type = "text/plain"
-        intent.putExtra(Intent.EXTRA_EMAIL, arrayOf("appsupport@happay.in"))
-        intent.putExtra(Intent.EXTRA_CC, arrayOf("asutosh.nayak@happay.in"))
-        intent.putExtra(
-            Intent.EXTRA_SUBJECT,
-            "User Logs"
-        )
-        intent.putExtra(Intent.EXTRA_TEXT, getString(R.string.issue_mail_template))
-        try {
-            val sourceDir: File = Utils.getAppFolderInternal(this)
-            val files: Array<File> = sourceDir.listFiles()
-            val uris: ArrayList<Uri> = ArrayList()
-            Log.e("getAllFilesInDir", "Size: " + files.size)
-            intent.action = Intent.ACTION_SEND_MULTIPLE
-            for (i in files.indices) {
-                //Log.e("getAllFilesInDir", "FileName:" + files[i].getAbsolutePath());
-                val uri: Uri = FileProvider.getUriForFile(
-                    applicationContext,
-                    getString(R.string.sl_file_provider),
-                    files[i]
-                )
-                //Uri uri = Uri.parse("file://" + files[i]);
-                //intent.putExtra(Intent.EXTRA_STREAM, uri);
-                uris.add(uri)
-            }
-            intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
-            intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            startActivityForResult(
-                Intent.createChooser(
-                    intent,
-                    getString(R.string.choose_share_app)
-                ), 1
-            )
-        } catch (e: Exception) {
-            //Log.e("AttachError", "E", e);
-            Toast.makeText(this, e.message, Toast.LENGTH_SHORT).show()
-        }
-    }
-
     fun startAppDetailsActivity(packageName: String) {
         try {
             //Open the specific App Info page:
@@ -493,6 +460,11 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
             val intent = Intent(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS)
             startActivity(intent)
         }
+    }
+
+    fun startLogFilesActivity() {
+        val intent = Intent(this, LogsActivity::class.java)
+        startActivity(intent)
     }
 
     override fun refreshAppList(apps: ArrayList<AppModel>) {

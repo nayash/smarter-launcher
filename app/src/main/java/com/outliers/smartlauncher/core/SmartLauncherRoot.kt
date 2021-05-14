@@ -17,7 +17,7 @@ import com.google.gson.Gson
 import com.outliers.smartlauncher.consts.Constants
 import com.outliers.smartlauncher.models.AppModel
 import com.outliers.smartlauncher.models.AppModel.CREATOR.getAppModelsFromPackageInfoList
-import com.outliers.smartlauncher.utils.LogHelper
+import com.outliers.smartlauncher.debugtools.loghelper.LogHelper
 import com.outliers.smartlauncher.utils.Utils
 import com.outliers.smartlauncher.utils.Utils.isValidString
 import kotlinx.coroutines.*
@@ -150,6 +150,7 @@ class SmartLauncherRoot private constructor(val context: Context,
                 println("test-lSeq $launchSequence")
             }catch (ex: Exception){
                 Toast.makeText(context, "Exception: ${ex.message}", Toast.LENGTH_LONG).show()
+                FirebaseCrashlytics.getInstance().recordException(ex)
             }
         }
         return
@@ -160,7 +161,7 @@ class SmartLauncherRoot private constructor(val context: Context,
             val stime = System.currentTimeMillis()
             val launchVec = genAppLaunchVec(packageName)
             appSuggestions.clear()
-            appSuggestions.addAll(findKNN(launchVec))
+            appSuggestions.addAll(findKNN(launchVec, packageName))
             notifyNewSuggestions()
             // once all calculations and prediction is done, store the launchVec as history,
             // to use it for future predictions
@@ -177,7 +178,7 @@ class SmartLauncherRoot private constructor(val context: Context,
         }
     }
 
-    private suspend fun findKNN(launchVec: ArrayRealVector): ArrayList<AppModel> {
+    private suspend fun findKNN(launchVec: ArrayRealVector, packageName: String): ArrayList<AppModel> {
         val appPreds = ArrayList<AppModel>()
         coroutineScope {
             var appScoresMap =
@@ -194,12 +195,13 @@ class SmartLauncherRoot private constructor(val context: Context,
                     appScoresMap[tuple.key] = prevScore
                 }
             }
+            // TODO you have eqn 9
             var breaker = 0
             Log.v("test-appScores", appScoresMap.toString())
             appScoresMap = appScoresMap.entries.sortedBy { -it.value }
                 .associate { it.toPair() } as HashMap<String, Double>
             Log.v("test-appScoreSorted", appScoresMap.toString())
-            for ((packageName, score) in appScoresMap) { // TODO IMP!!!! this is wrong, sort by value not key
+            for ((packageName, score) in appScoresMap) {
                 Utils.getAppByPackage(allInstalledApps, packageName)?.let { appPreds.add(it) }
                 breaker++
                 Log.v("test-app-predictions", "$packageName-->$score")

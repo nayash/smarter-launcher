@@ -24,7 +24,7 @@ import android.widget.Toast;
 
 import com.outliers.smartlauncher.R;
 import com.outliers.smartlauncher.consts.Constants;
-import com.outliers.smartlauncher.utils.LogHelper;
+import com.outliers.smartlauncher.debugtools.loghelper.LogHelper;
 import com.outliers.smartlauncher.utils.Utils;
 
 import java.io.File;
@@ -64,60 +64,6 @@ public class CrashHandlerActivity extends AppCompatActivity {
         pref.edit().putString("crash_id", "").apply();
         // pref.edit().putString("cause", "").apply();
         // LogHelper.getLogHelper(this).printLogFileContent();
-    }
-
-    private void sendMail(){
-        //TODO Write External Storage permission
-        if(!checkWritePermission())
-            return;
-
-        Intent intent = new Intent(Intent.ACTION_SEND);
-        intent.setType("text/plain");
-        intent.putExtra(Intent.EXTRA_EMAIL, new String[] {"appsupport@happay.in"});
-        intent.putExtra(Intent.EXTRA_CC, new String[] {"sandeep@happay.in","asutosh.nayak@happay.in"});
-        intent.putExtra(Intent.EXTRA_SUBJECT, "User Log - "+cid);
-        intent.putExtra(Intent.EXTRA_TEXT, "User Logs");
-        try {
-            if(!Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)){
-                Toast.makeText(this,"External memory not available. Please try again",Toast.LENGTH_SHORT).show();
-                return;
-            }
-            ProgressDialog pd = ProgressDialog.show(this,"Gathering log files","shouldn't be more than a few seconds",true,true);
-            File sourceDir = Utils.getAppFolderInternal(this);
-            File destDir = new File(LogHelper.getLogHelper(this).getExternalTempDir());
-
-
-            File[] files = destDir.listFiles();
-            if(files != null && files.length > 0) { //if destination already has some old log files delete them. else proceed
-                for (File file : files) {
-                    file.delete();
-                }
-            }
-
-            FileUtils.copyDirectory(sourceDir, destDir);
-            pd.hide();
-
-            files = destDir.listFiles();
-            ArrayList<Uri> uris = new ArrayList<>();
-            //Log.e("getAllFilesInDir", "Size: "+ files.length);
-            intent.setAction(Intent.ACTION_SEND_MULTIPLE);
-            for(int i = 0; i < files.length; i++)
-            {
-                //Log.e("getAllFilesInDir", "FileName:" + files[i].getAbsolutePath());
-                Uri uri = FileProvider.getUriForFile(getApplicationContext()
-                        , getPackageName() + ".provider", files[i]);
-                //Uri uri = Uri.parse("file://" + files[i]);
-                //intent.putExtra(Intent.EXTRA_STREAM, uri);
-                uris.add(uri);
-            }
-            intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris);
-            intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            startActivityForResult(Intent.createChooser(intent, "Choose application to share logs with our development team"),1);
-
-        } catch (IOException e) {
-            //Log.e("AttachError","E",e);
-            Toast.makeText(this,e.getMessage(),Toast.LENGTH_SHORT).show();
-        }
     }
 
     private boolean checkWritePermission() {

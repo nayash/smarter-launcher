@@ -5,7 +5,6 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothHeadset
 import android.content.*
 import android.content.pm.ApplicationInfo
-import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.location.LocationManager
 import android.media.AudioManager
@@ -22,14 +21,17 @@ import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.RotateAnimation
 import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.app.AlertDialog
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.gson.Gson
 import com.outliers.smartlauncher.BuildConfig
+import com.outliers.smartlauncher.debugtools.loghelper.LogHelper
 import com.outliers.smartlauncher.models.AppModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.apache.commons.math3.linear.RealVector
 import org.json.JSONObject
 import java.io.*
+import java.lang.StringBuilder
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -319,12 +321,8 @@ object Utils {
         var obj: T? = null
         try {
             withContext(Dispatchers.IO) {
-                val fis = FileInputStream(fileName)
-                val `is` = ObjectInputStream(fis)
-                val temp = `is`.readObject()
-                `is`.close()
-                fis.close()
-                obj = Gson().fromJson(temp.toString(), T::class.java)
+                val temp = readFromFileAsString(context, fileName)
+                obj = Gson().fromJson(temp, T::class.java)
             }
         }catch (ex: Exception){
             LogHelper.getLogHelper(context).addLogToQueue(
@@ -334,30 +332,33 @@ object Utils {
                 context
             )
             obj = null
+            FirebaseCrashlytics.getInstance().recordException(ex)
         }
         return obj
     }
 
-    suspend inline fun readFromFileAsString(context: Context, fileName: String): String? {
-        var temp: String? = null
+    suspend fun readFromFileAsString(context: Context, fileName: String): String? {
+        val sb = StringBuilder()
         try {
             withContext(Dispatchers.IO) {
-                val fis = FileInputStream(fileName)
-                val `is` = ObjectInputStream(fis)
-                temp = `is`.readObject().toString()
-                `is`.close()
-                fis.close()
+                val br = BufferedReader(FileReader(File(fileName)))
+                var line: String?
+                while (br.readLine().also { line = it } != null) {
+                    sb.append(line)
+                    sb.append('\n')
+                }
+                br.close()
             }
         }catch (ex: Exception){
             LogHelper.getLogHelper(context).addLogToQueue(
                 "readFromFileException:" +
-                        "${Log.getStackTraceString(ex)}\nobj=${temp}",
+                        "${Log.getStackTraceString(ex)}\nobj=${sb.toString()}",
                 LogHelper.LOG_LEVEL.ERROR,
                 context
             )
-            temp = null
+            FirebaseCrashlytics.getInstance().recordException(ex)
         }
-        return temp
+        return sb.toString()
     }
 
     fun isMyAppLauncherDefault(context: Context): Boolean {
@@ -375,5 +376,10 @@ object Utils {
             }
         }
         return false
+    }
+
+    @JvmStatic
+    fun bytesToKB(bytes: Long): Long{
+        return bytes/1024
     }
 }

@@ -7,7 +7,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
-import com.outliers.smartlauncher.utils.LogHelper
+import com.outliers.smartlauncher.debugtools.loghelper.LogHelper
 import java.util.*
 
 

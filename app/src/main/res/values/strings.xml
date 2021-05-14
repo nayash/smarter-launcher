@@ -7,8 +7,9 @@
     <string name="location_disabled">Location is disabled. Prediction may be inaccurate</string>
 
     <string name="issue_mail_template">Hi User,\n\n Please briefly describe the issue you are facing:\n</string>
-    <string name="sl_file_provider">com.outliers.smartlauncher.file_provider</string>
+    <string name="sl_file_provider">com.outliers.fileprovider</string>
     <string name="choose_share_app">Choose an app to share with</string>
     <string name="app_details">App details</string>
     <string name="default_launcher_prompt">Please make SmartLauncher your default</string>
+    <string name="show_logs">Show logs</string>
 </resources>
