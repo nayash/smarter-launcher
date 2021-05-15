@@ -326,7 +326,7 @@ object Utils {
             }
         }catch (ex: Exception){
             LogHelper.getLogHelper(context).addLogToQueue(
-                "readFromFileException:" +
+                "readFromFileException1:" +
                         "${Log.getStackTraceString(ex)}\nobj=${obj.toString()}",
                 LogHelper.LOG_LEVEL.ERROR,
                 context
@@ -351,7 +351,7 @@ object Utils {
             }
         }catch (ex: Exception){
             LogHelper.getLogHelper(context).addLogToQueue(
-                "readFromFileException:" +
+                "readFromFileException2:" +
                         "${Log.getStackTraceString(ex)}\nobj=${sb.toString()}",
                 LogHelper.LOG_LEVEL.ERROR,
                 context

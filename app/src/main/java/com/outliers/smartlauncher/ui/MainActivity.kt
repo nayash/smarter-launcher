@@ -34,6 +34,7 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.firebase.crashlytics.FirebaseCrashlytics
+import com.outliers.smartlauncher.BuildConfig
 import com.outliers.smartlauncher.R
 import com.outliers.smartlauncher.core.MainViewModel
 import com.outliers.smartlauncher.core.MainViewModelFactory
@@ -173,6 +174,9 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         binding.root.setOnLongClickListener {
             val popupMenu = PopupMenu(this, it)
             popupMenu.menuInflater.inflate(R.menu.activity_main_menu, popupMenu.menu)
+            if(!BuildConfig.DEBUG){
+                popupMenu.menu.findItem(R.id.menu_log_files).isVisible = false
+            }
             popupMenu.setOnMenuItemClickListener {
                 when (it.itemId) {
                     R.id.menu_log_files -> startLogFilesActivity()

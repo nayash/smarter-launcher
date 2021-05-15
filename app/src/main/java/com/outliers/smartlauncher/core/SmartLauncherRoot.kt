@@ -191,11 +191,10 @@ class SmartLauncherRoot private constructor(val context: Context,
                     val distance = lVecHist.getDistance(launchVec)
                     val similarity = 1 / (distance + EPSILON)
                     var prevScore = appScoresMap[tuple.key] ?: 0.0
-                    prevScore += similarity
+                    prevScore += similarity  // this takes care of eqn 9
                     appScoresMap[tuple.key] = prevScore
                 }
             }
-            // TODO you have eqn 9
             var breaker = 0
             Log.v("test-appScores", appScoresMap.toString())
             appScoresMap = appScoresMap.entries.sortedBy { -it.value }
