@@ -181,20 +181,27 @@ class SmartLauncherRoot private constructor(val context: Context,
     private suspend fun findKNN(launchVec: ArrayRealVector, packageName: String): ArrayList<AppModel> {
         val appPreds = ArrayList<AppModel>()
         coroutineScope {
-            var appScoresMap =
-                HashMap<String, Double>()  // appPackage to score mapping, to later apply toSrotedMap
+            var appScoresMap = HashMap<String, Double>()  // appPackage to score mapping, to later apply toSrotedMap
+            var appFreq = HashMap<String, Int>()
             for (tuple in launchHistoryList) {
                 val lVecHist = tuple.value
                 if (lVecHist != null) {
                     Log.v("test-dimCheck", "${lVecHist.dimension}, ${launchVec.dimension}")
                     // println("test-dimCheck ${lVecHist.dimension}, ${launchVec.dimension}")
-                    val distance = lVecHist.getDistance(launchVec)
-                    val similarity = 1 / (distance + EPSILON)
+                    // val distance = lVecHist.getDistance(launchVec)
+                    // val similarity = 1 / (distance + EPSILON)
+                    val similarity = lVecHist.cosine(launchVec)
                     var prevScore = appScoresMap[tuple.key] ?: 0.0
                     prevScore += similarity  // this takes care of eqn 9
                     appScoresMap[tuple.key] = prevScore
+                    appFreq[tuple.key] = (appFreq[tuple.key] ?: 0) + 1
                 }
             }
+
+            for((k, v) in appScoresMap){
+                appScoresMap[k] = v/(appFreq[k] ?: 1)
+            }
+
             var breaker = 0
             Log.v("test-appScores", appScoresMap.toString())
             appScoresMap = appScoresMap.entries.sortedBy { -it.value }
@@ -462,7 +469,7 @@ class SmartLauncherRoot private constructor(val context: Context,
             Utils.getAppFolderInternal(context),
             Constants.LAUNCH_SEQUENCE_SAVE_FILE
         )
-        Utils.writeToFile(context, fileLaunchSeq.absolutePath, launchSequence as Object)
+        Utils.writeToFile(context, fileLaunchSeq.absolutePath, launchSequence)
     }
 
     suspend fun saveLaunchHistory() {
@@ -472,7 +479,7 @@ class SmartLauncherRoot private constructor(val context: Context,
             Utils.getAppFolderInternal(context),
             Constants.LAUNCH_HISTORY_SAVE_FILE
         )
-        Utils.writeToFile(context, file.absolutePath, launchHistoryList as Object)
+        Utils.writeToFile(context, file.absolutePath, launchHistoryList)
         // launcherPref.edit().putString(Constants.LAUNCH_HISTORY_SAVE_FILE, Gson().toJson(launchHistory)).apply()
         Log.v("test-launchHistorySave", Gson().toJson(launchHistoryList))
     }
@@ -485,7 +492,7 @@ class SmartLauncherRoot private constructor(val context: Context,
             Constants.APP_SUGGESTIONS_SAVE_FILE
         )
         val temp: List<String> = appSuggestions.map { it.packageName }
-        Utils.writeToFile(context, file.absolutePath, temp as Object)
+        Utils.writeToFile(context, file.absolutePath, temp)
     }
 
     suspend fun loadLaunchSequence() {

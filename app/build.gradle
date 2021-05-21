@@ -13,7 +13,7 @@ android {
 
     defaultConfig {
         applicationId "com.outliers.smartlauncher"
-        minSdkVersion 21
+        minSdkVersion 22
         targetSdkVersion 29  // not targeting 30 due to app visibility restrictions
         versionCode 1
         versionName "1.0"

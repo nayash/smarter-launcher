@@ -298,7 +298,7 @@ object Utils {
         return device
     }
 
-    suspend fun writeToFile(context: Context, path: String, objectToWrite: Object){
+    suspend fun writeToFile(context: Context, path: String, objectToWrite: Any): Boolean{
         try {
             Log.v("writeToFile", "obj = $objectToWrite")
             withContext(Dispatchers.IO) {
@@ -309,11 +309,13 @@ object Utils {
                 os.close()
                 fos.close()
             }
+            return true
         }catch (ex: Exception){
             LogHelper.getLogHelper(context).addLogToQueue(
                 "writeToFileException:" +
                         "${Log.getStackTraceString(ex)}", LogHelper.LOG_LEVEL.ERROR, context
             )
+            return false
         }
     }
 
@@ -381,5 +383,9 @@ object Utils {
     @JvmStatic
     fun bytesToKB(bytes: Long): Long{
         return bytes/1024
+    }
+
+    fun getFileNameFromPath(path: String): String{
+        return path.split(File.separator).last()
     }
 }

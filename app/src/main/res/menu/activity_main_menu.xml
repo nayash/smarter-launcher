@@ -3,4 +3,7 @@
     <item
         android:id="@+id/menu_log_files"
         android:title="@string/show_logs"/>
+    <item
+        android:id="@+id/menu_data_files"
+        android:title="@string/show_data_files"/>
 </menu>

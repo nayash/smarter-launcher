@@ -21,6 +21,7 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.widget.*
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -41,6 +42,7 @@ import com.outliers.smartlauncher.core.MainViewModelFactory
 import com.outliers.smartlauncher.core.RVItemDecoration
 import com.outliers.smartlauncher.core.SmartLauncherApplication
 import com.outliers.smartlauncher.databinding.ActivityMainBinding
+import com.outliers.smartlauncher.debugtools.backup.BackupActivity
 import com.outliers.smartlauncher.models.AppModel
 import com.outliers.smartlauncher.debugtools.loghelper.LogHelper
 import com.outliers.smartlauncher.debugtools.loghelper.LogsActivity
@@ -61,6 +63,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
     lateinit var etSearch: EditText
     var appPredAdapter: AppsRVAdapter? = null
 
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP_MR1)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
@@ -172,7 +175,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         }, 1000)
 
         binding.root.setOnLongClickListener {
-            val popupMenu = PopupMenu(this, it)
+            val popupMenu = PopupMenu(this, it, Gravity.NO_GRAVITY, R.attr.actionOverflowMenuStyle, 0) //PopupMenu(this, it)
             popupMenu.menuInflater.inflate(R.menu.activity_main_menu, popupMenu.menu)
             if(!BuildConfig.DEBUG){
                 popupMenu.menu.findItem(R.id.menu_log_files).isVisible = false
@@ -180,12 +183,14 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
             popupMenu.setOnMenuItemClickListener {
                 when (it.itemId) {
                     R.id.menu_log_files -> startLogFilesActivity()
+                    R.id.menu_data_files -> startDataFilesActivity()
                 }
                 return@setOnMenuItemClickListener true
             }
             popupMenu.show()
             true
         }
+
     }
 
     fun askForDefaultLauncher() {
@@ -468,6 +473,11 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
 
     fun startLogFilesActivity() {
         val intent = Intent(this, LogsActivity::class.java)
+        startActivity(intent)
+    }
+
+    fun startDataFilesActivity(){
+        val intent = Intent(this, BackupActivity::class.java)
         startActivity(intent)
     }
 
