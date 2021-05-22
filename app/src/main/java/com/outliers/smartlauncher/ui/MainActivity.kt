@@ -122,13 +122,16 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
                             theme
                         )
                     )
-                    BottomSheetBehavior.STATE_COLLAPSED -> imageView.setImageDrawable(
-                        ResourcesCompat.getDrawable(
-                            resources,
-                            R.drawable.round_expand_less_black_36,
-                            theme
+                    BottomSheetBehavior.STATE_COLLAPSED -> {
+                        imageView.setImageDrawable(
+                            ResourcesCompat.getDrawable(
+                                resources,
+                                R.drawable.round_expand_less_black_36,
+                                theme
+                            )
                         )
-                    )
+                        etSearch.setText("")
+                    }
                 }
             }
 
