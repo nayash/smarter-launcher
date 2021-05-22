@@ -599,7 +599,7 @@ class SmartLauncherRoot private constructor(val context: Context,
             LogHelper.getLogHelper(context).addLogToQueue(
                 "test-loadPreds -- ${Log.getStackTraceString(ex)}", LogHelper.LOG_LEVEL.ERROR, context)
         }
-        appSuggestionsLiveData.postValue(appSuggestions)
+        appSuggestionsLiveData.postValue(appSuggestions)  // TODO not notifying on device restart
         Log.d("test-loadPreds", "$appSuggestions")
     }
 
