@@ -4,35 +4,32 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Environment
-import android.provider.DocumentsContract
+import android.os.FileUtils
+import android.provider.OpenableColumns
 import android.util.Log
 import android.widget.Toast
-import androidx.core.app.ActivityCompat
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat.requestPermissions
 import androidx.core.content.ContextCompat
-import androidx.core.net.toUri
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.outliers.smartlauncher.R
-import com.outliers.smartlauncher.consts.Constants
-import com.outliers.smartlauncher.debugtools.backup.FilesRVAdapter
 import com.outliers.smartlauncher.utils.Utils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.io.File
-import java.security.Permission
-import java.security.Permissions
-import java.util.jar.Manifest
+import java.io.*
+
 
 class BackupActivity : AppCompatActivity(), FilesRVAdapter.FilesRVAdapterParent {
+    private val PICK_FILE_REQUEST_CODE: Int = 2
     private val CREATE_FILE: Int = 1
     private lateinit var dataFiles: List<String>
     private val rootPath by lazy { Utils.getAppFolderInternal(this) }
     var rvFiles: RecyclerView? = null
+    var replaceFilePath: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,7 +61,26 @@ class BackupActivity : AppCompatActivity(), FilesRVAdapter.FilesRVAdapterParent 
     }
 
     override fun replace(position: Int, path: String) {
+        replaceFilePath = path
+        val intent = Intent(Intent.ACTION_GET_CONTENT)
+        intent.type = "*/*"
+        startActivityForResult(intent, PICK_FILE_REQUEST_CODE)
+    }
 
+    fun replaceFile(source: Uri, dest: String) {
+        Log.d("replaceFile", "test-$source, $dest")
+        CoroutineScope(Dispatchers.IO).launch {
+            val data = Utils.readFromFileAsString(this@BackupActivity, source)
+            data?.let {
+                val res = Utils.writeToFile(this@BackupActivity, dest, it)
+                runOnUiThread{
+                    if (res) Toast.makeText(
+                        this@BackupActivity,
+                        "File write done", Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
     }
 
     override fun getContext(): Context {
@@ -141,6 +157,59 @@ class BackupActivity : AppCompatActivity(), FilesRVAdapter.FilesRVAdapterParent 
                     ).show()
                 }
                 return
+            }
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if(requestCode == PICK_FILE_REQUEST_CODE){
+            if(resultCode == RESULT_OK){
+                val uri = data?.data
+                if(uri != null){
+                    val fileName = getFileName(uri)
+                    // replaceFilePath?.let { dest -> replaceFile(uri, dest) }
+                    val file = File(Utils.getAppFolderInternal(this), fileName)
+                    copyToFile(uri, file)
+                    Log.d("onActivityRes", "test-copied to ${file.absolutePath}")
+                }
+            }
+        }
+    }
+
+    @Throws(IllegalArgumentException::class)
+    private fun getFileName(uri: Uri): String? {
+        // Obtain a cursor with information regarding this uri
+        val cursor = contentResolver.query(uri, null, null, null, null)
+        if (cursor!!.count <= 0) {
+            cursor.close()
+            throw IllegalArgumentException("Can't obtain file name, cursor is empty")
+        }
+        cursor.moveToFirst()
+        val fileName = cursor.getString(cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME))
+        cursor.close()
+        return fileName
+    }
+
+    @Throws(IOException::class)
+    private fun copyToFile(uri: Uri, file: File): File? {
+        // Obtain an input stream from the uri
+        val inputStream = contentResolver.openInputStream(uri)
+            ?: throw IOException("Unable to obtain input stream from URI")
+
+        // Copy the stream to the temp file
+        copyInputStreamToFile(inputStream, file)
+        return file
+    }
+
+    @Throws(IOException::class)
+    private fun copyInputStreamToFile(inputStream: InputStream, file: File) {
+        // append = false
+        FileOutputStream(file, false).use { outputStream ->
+            var read: Int
+            val bytes = ByteArray(DEFAULT_BUFFER_SIZE)
+            while (inputStream.read(bytes).also { read = it } != -1) {
+                outputStream.write(bytes, 0, read)
             }
         }
     }

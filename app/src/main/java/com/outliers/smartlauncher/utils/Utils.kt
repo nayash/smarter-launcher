@@ -10,8 +10,12 @@ import android.location.LocationManager
 import android.media.AudioManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.Uri
 import android.os.BatteryManager
 import android.os.Build
+import android.os.Environment
+import android.provider.DocumentsContract
+import android.provider.MediaStore
 import android.provider.Settings
 import android.text.TextUtils
 import android.util.DisplayMetrics
@@ -363,6 +367,30 @@ object Utils {
         return sb.toString()
     }
 
+    suspend fun readFromFileAsString(context: Context, fileName: Uri): String? {
+        val sb = StringBuilder()
+        try {
+            withContext(Dispatchers.IO) {
+                val br = BufferedReader(FileReader(File(fileName.toString())))
+                var line: String?
+                while (br.readLine().also { line = it } != null) {
+                    sb.append(line)
+                    sb.append('\n')
+                }
+                br.close()
+            }
+        }catch (ex: Exception){
+            LogHelper.getLogHelper(context).addLogToQueue(
+                "readFromFileException2:" +
+                        "${Log.getStackTraceString(ex)}\nobj=${sb.toString()}",
+                LogHelper.LOG_LEVEL.ERROR,
+                context
+            )
+            FirebaseCrashlytics.getInstance().recordException(ex)
+        }
+        return sb.toString()
+    }
+
     fun isMyAppLauncherDefault(context: Context): Boolean {
         val filter = IntentFilter(Intent.ACTION_MAIN)
         filter.addCategory(Intent.CATEGORY_HOME)
@@ -385,7 +413,7 @@ object Utils {
         return bytes/1024
     }
 
-    fun getFileNameFromPath(path: String): String{
+    fun getFileNameFromPath(path: String): String {
         return path.split(File.separator).last()
     }
 }
