@@ -6,7 +6,6 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
-import android.os.FileUtils
 import android.provider.OpenableColumns
 import android.util.Log
 import android.widget.Toast
@@ -16,10 +15,12 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.outliers.smartlauncher.R
+import com.outliers.smartlauncher.consts.Constants
 import com.outliers.smartlauncher.utils.Utils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.apache.commons.io.FileUtils
 import java.io.*
 
 
@@ -88,8 +89,14 @@ class BackupActivity : AppCompatActivity(), FilesRVAdapter.FilesRVAdapterParent 
     }
 
     private fun createFile(backupPath: String?, path: String) {
-        if (checkExternalWritePermission())
-            CoroutineScope(Dispatchers.IO).launch {
+        if (checkExternalWritePermission()) {
+            FileUtils.copyFileToDirectory(
+                File(path),
+                File(backupPath, getString(R.string.app_name))
+            )
+            Toast.makeText(this, "Done", Toast.LENGTH_SHORT).show()
+        }
+            /*CoroutineScope(Dispatchers.IO).launch {
                 val data = Utils.readFromFileAsString(this@BackupActivity, path)
                 Log.d("createFile", "test-download path= $backupPath")
                 if (data != null && backupPath != null) {
@@ -117,8 +124,7 @@ class BackupActivity : AppCompatActivity(), FilesRVAdapter.FilesRVAdapterParent 
                             ).show()
                     }
 
-                }
-            }
+                }*/
     }
 
     private fun checkExternalWritePermission(): Boolean {
@@ -168,10 +174,11 @@ class BackupActivity : AppCompatActivity(), FilesRVAdapter.FilesRVAdapterParent 
                 val uri = data?.data
                 if(uri != null){
                     val fileName = getFileName(uri)
-                    // replaceFilePath?.let { dest -> replaceFile(uri, dest) }
                     val file = File(Utils.getAppFolderInternal(this), fileName)
                     copyToFile(uri, file)
                     Log.d("onActivityRes", "test-copied to ${file.absolutePath}")
+                    rvFiles?.adapter?.notifyDataSetChanged()
+                    sendBroadcast(Intent(Constants.ACTION_LAUNCHER_DATA_REFRESH))
                 }
             }
         }
@@ -192,14 +199,25 @@ class BackupActivity : AppCompatActivity(), FilesRVAdapter.FilesRVAdapterParent 
     }
 
     @Throws(IOException::class)
-    private fun copyToFile(uri: Uri, file: File): File? {
+    private fun copyToFile(uri: Uri, file: File) {
         // Obtain an input stream from the uri
-        val inputStream = contentResolver.openInputStream(uri)
+        /*val inputStream = contentResolver.openInputStream(uri)
             ?: throw IOException("Unable to obtain input stream from URI")
-
         // Copy the stream to the temp file
-        copyInputStreamToFile(inputStream, file)
-        return file
+        copyInputStreamToFile(inputStream, file)*/
+        try {
+            val `in` = contentResolver.openInputStream(uri)
+            val r = BufferedReader(InputStreamReader(`in`))
+            val total = StringBuilder()
+            var line: String?
+            while (r.readLine().also { line = it } != null) {
+                total.append(line).append('\n')
+            }
+            val content = total.toString()
+            FileUtils.writeStringToFile(file, content)
+        } catch (e: Exception) {
+            Log.e("test-copyToFile", Log.getStackTraceString(e))
+        }
     }
 
     @Throws(IOException::class)

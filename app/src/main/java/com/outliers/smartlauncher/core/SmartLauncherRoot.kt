@@ -17,6 +17,7 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.outliers.smartlauncher.consts.Constants
 import com.outliers.smartlauncher.models.AppModel
 import com.outliers.smartlauncher.models.AppModel.CREATOR.getAppModelsFromPackageInfoList
@@ -25,6 +26,7 @@ import com.outliers.smartlauncher.utils.Utils
 import com.outliers.smartlauncher.utils.Utils.isValidString
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
+import org.apache.commons.io.FileUtils
 import org.apache.commons.math3.linear.ArrayRealVector
 import org.json.JSONArray
 import org.json.JSONException
@@ -479,7 +481,8 @@ class SmartLauncherRoot private constructor(val context: Context,
             Utils.getAppFolderInternal(context),
             Constants.LAUNCH_SEQUENCE_SAVE_FILE
         )
-        Utils.writeToFile(context, fileLaunchSeq.absolutePath, launchSequence)
+        // Utils.writeToFile(context, fileLaunchSeq.absolutePath, launchSequence)
+        FileUtils.writeStringToFile(fileLaunchSeq, Gson().toJson(launchSequence).toString())
     }
 
     suspend fun saveLaunchHistory() {
@@ -489,7 +492,8 @@ class SmartLauncherRoot private constructor(val context: Context,
             Utils.getAppFolderInternal(context),
             Constants.LAUNCH_HISTORY_SAVE_FILE
         )
-        Utils.writeToFile(context, file.absolutePath, launchHistoryList)
+        // Utils.writeToFile(context, file.absolutePath, launchHistoryList)
+        FileUtils.writeStringToFile(file, Gson().toJson(launchHistoryList).toString())
         // launcherPref.edit().putString(Constants.LAUNCH_HISTORY_SAVE_FILE, Gson().toJson(launchHistory)).apply()
         Log.v("test-launchHistorySave", Gson().toJson(launchHistoryList))
     }
@@ -502,7 +506,8 @@ class SmartLauncherRoot private constructor(val context: Context,
             Constants.APP_SUGGESTIONS_SAVE_FILE
         )
         val temp: List<String> = appSuggestions.map { it.packageName }
-        Utils.writeToFile(context, file.absolutePath, temp)
+        // Utils.writeToFile(context, file.absolutePath, temp)
+        FileUtils.writeStringToFile(file, Gson().toJson(temp).toString())
     }
 
     suspend fun loadLaunchSequence() {
@@ -510,9 +515,24 @@ class SmartLauncherRoot private constructor(val context: Context,
             Utils.getAppFolderInternal(context),
             Constants.LAUNCH_SEQUENCE_SAVE_FILE
         )
-        val temp = Utils.readFromFile<ArrayList<String>>(context, fileLaunchSeq.absolutePath)
-        if (temp != null)
-            launchSequence = temp
+        if(!fileLaunchSeq.exists())
+            return
+        // val temp = Utils.readFromFile<ArrayList<String>>(context, fileLaunchSeq.absolutePath)
+        try {
+            launchSequence.clear()
+            val jArray = JSONArray(FileUtils.readFileToString(fileLaunchSeq))
+            for (i in 0 until jArray.length()) {
+                launchSequence.add(jArray.getString(i))
+            }
+        }catch (ex: JSONException){
+            LogHelper.getLogHelper(context).addLogToQueue(
+                "test-loadLaunchSeq -- ${Log.getStackTraceString(ex)}",
+                LogHelper.LOG_LEVEL.ERROR, context)
+        }
+
+        Log.d("test-loadLaunchSeq", "$launchSequence")
+        /*if (temp != null)
+            launchSequence = temp*/
     }
 
     suspend fun loadLaunchHistory() {
@@ -520,7 +540,10 @@ class SmartLauncherRoot private constructor(val context: Context,
             Utils.getAppFolderInternal(context),
             Constants.LAUNCH_HISTORY_SAVE_FILE
         )
-        val checkPoint = Utils.readFromFileAsString(context, file.absolutePath)
+        if(!file.exists())
+            return
+        // val checkPoint = Utils.readFromFileAsString(context, file.absolutePath)
+        val checkPoint = FileUtils.readFileToString(file)
         //{"com.google.android.calendar":{"data":[0.41935483870967744,0.041666666666666664,0.03597791333333333,0.21588130694444443,0.0,1.0,0.0,0.0,1.0,0.0,0.97,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]},"com.google.android.deskclock":{"data":[0.41935483870967744,0.041666666666666664,0.03597791861111111,0.2158812911111111,0.0,1.0,0.0,0.0,1.0,0.0,0.97,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]}}
         // [{"key":"0","value":{"data":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]}},{"key":"1","value":{"data":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]}},{"key":"2","value":{"data":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]}},{"key":"3","value":{"data":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]}},{"key":"4","value":{"data":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]}},{"key":"5","value":{"data":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]}},{"key":"6","value":{"data":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]}},{"key":"7","value":{"data":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]}},{"key":"8","value":{"data":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]}},{"key":"9","value":{"data":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]}}]
         // val checkPoint = launcherPref.getString(Constants.LAUNCH_HISTORY_SAVE_FILE, "")
@@ -555,19 +578,29 @@ class SmartLauncherRoot private constructor(val context: Context,
             Utils.getAppFolderInternal(context),
             Constants.APP_SUGGESTIONS_SAVE_FILE
         )
-        val temp = Utils.readFromFile<ArrayList<String>>(context, file.absolutePath)
-        appSuggestions.clear()
-        if (temp != null) {
-            for (packageName in temp) {
-                Log.d("test-loadPreds", "loop")
-                for (appModel in allInstalledApps) {
-                    // Log.d("test-loadPreds", "inside loop")
-                    if (appModel.packageName.equals(packageName, true))
-                        appSuggestions.add(appModel)
+        if(!file.exists())
+            return
+        // val temp = Utils.readFromFile<ArrayList<String>>(context, file.absolutePath)
+        try {
+            val temp = JSONArray(FileUtils.readFileToString(file))
+            appSuggestions.clear()
+            if (temp != null) {
+                for (i in 0 until temp.length()) {
+                    val packageName = temp.getString(i)
+                    Log.d("test-loadPreds", "loop")
+                    for (appModel in allInstalledApps) {
+                        // Log.d("test-loadPreds", "inside loop")
+                        if (appModel.packageName.equals(packageName, true))
+                            appSuggestions.add(appModel)
+                    }
                 }
             }
+        }catch (ex: JSONException){
+            LogHelper.getLogHelper(context).addLogToQueue(
+                "test-loadPreds -- ${Log.getStackTraceString(ex)}", LogHelper.LOG_LEVEL.ERROR, context)
         }
         appSuggestionsLiveData.postValue(appSuggestions)
+        Log.d("test-loadPreds", "$appSuggestions")
     }
 
     suspend fun cleanUpHistory() {
@@ -600,6 +633,5 @@ class SmartLauncherRoot private constructor(val context: Context,
             Log.d("test-onReceive", "${intent?.action}")
             outliersLauncherRoot?.loadState()
         }
-
     }
 }
