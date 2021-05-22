@@ -153,7 +153,7 @@ class BackupActivity : AppCompatActivity(), FilesRVAdapter.FilesRVAdapterParent 
                             android.Manifest.permission.WRITE_EXTERNAL_STORAGE
                         ) == PackageManager.PERMISSION_GRANTED)
                     ) {
-                        Toast.makeText(this, "Permission Granted", Toast.LENGTH_SHORT)
+                        Toast.makeText(this, "Permission Granted. Retry the operation now.", Toast.LENGTH_SHORT)
                             .show()
                     }
                 } else {
