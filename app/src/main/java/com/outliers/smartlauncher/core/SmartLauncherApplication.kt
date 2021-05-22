@@ -68,7 +68,7 @@ class SmartLauncherApplication: Application() {
 
     fun cleanAndBackUp(){
         // TODO resource/cache cleanup, if any
-        smartLauncherRoot?.saveState()
+        smartLauncherRoot?.cleanUp()
     }
 
     private val appInstallBR = object : BroadcastReceiver(){

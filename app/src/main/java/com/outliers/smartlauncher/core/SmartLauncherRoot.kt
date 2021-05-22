@@ -1,7 +1,10 @@
 package com.outliers.smartlauncher.core
 
 import android.Manifest
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.location.Location
 import android.util.Log
@@ -79,6 +82,9 @@ class SmartLauncherRoot private constructor(val context: Context,
     init {
         // allInstalledApps
         // sizeTest()
+        DataChangedBR().let {
+            val intentFilter = IntentFilter(Constants.ACTION_LAUNCHER_DATA_REFRESH)
+            context.registerReceiver(it, intentFilter) }
         loadState()
     }
 
@@ -447,6 +453,10 @@ class SmartLauncherRoot private constructor(val context: Context,
         }
     }
 
+    fun cleanUp(){
+        saveState()
+    }
+
     fun loadState() {
         CoroutineScope(dispatcher).launch {
             loadLaunchSequence()
@@ -583,5 +593,13 @@ class SmartLauncherRoot private constructor(val context: Context,
                 }
             }
         }
+    }
+
+    class DataChangedBR: BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            Log.d("test-onReceive", "${intent?.action}")
+            outliersLauncherRoot?.loadState()
+        }
+
     }
 }
