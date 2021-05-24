@@ -35,7 +35,7 @@ public class LogHelper {
     public static final String LOG_INFO_PREFIX_DATE_FORMAT = "HH:mm:ss"; //dd MM yyyy
     private final int LOG_WRITE_BATCH_SIZE = 20;
     private final int PAST_DAYS_LOGS_TO_KEEP = 4;
-    private final String LOG_FILE_PREFIX = "SmartLauncherLog_";
+    public static final String LOG_FILE_PREFIX = "SmartLauncherLog_";
     public static final String SHARED_PREF_KEY_PENDING_LOG = "pending_logs";
     //public static final String LOG_TEMP_DIR = Environment.getExternalStorageDirectory()+"/.logtemp";
 
