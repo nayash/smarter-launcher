@@ -14,6 +14,7 @@ import com.outliers.smartlauncher.R;
 import com.outliers.smartlauncher.utils.Utils;
 
 import java.io.File;
+import java.util.ArrayList;
 
 public class FilesRVAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     interface FilesRVAdapterParent{
@@ -23,11 +24,11 @@ public class FilesRVAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         Context getContext();
     }
 
-    String[] paths;
+    ArrayList<String> paths;
     Context context;
     FilesRVAdapterParent parent;
 
-    public FilesRVAdapter(String[] paths, FilesRVAdapterParent parent){
+    public FilesRVAdapter(ArrayList<String> paths, FilesRVAdapterParent parent){
         this.context = parent.getContext();
         this.paths = paths;
         this.parent = parent;
@@ -44,14 +45,14 @@ public class FilesRVAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             ivReplace = itemView.findViewById(R.id.iv_replace);
             tvSize = itemView.findViewById(R.id.tv_file_size);
 
-            itemView.setOnClickListener(v -> parent.itemClicked(getLayoutPosition(), paths[getLayoutPosition()]));
+            itemView.setOnClickListener(v -> parent.itemClicked(getLayoutPosition(), paths.get(getLayoutPosition())));
 
             ivSave.setOnClickListener(v -> {
-                parent.save(getLayoutPosition(), paths[getLayoutPosition()]);
+                parent.save(getLayoutPosition(), paths.get(getLayoutPosition()));
             });
 
             ivReplace.setOnClickListener(v -> {
-                parent.replace(getLayoutPosition(), paths[getLayoutPosition()]);
+                parent.replace(getLayoutPosition(), paths.get(getLayoutPosition()));
             });
         }
     }
@@ -65,14 +66,14 @@ public class FilesRVAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         MainViewHolder mvh = (MainViewHolder) holder;
-        File file = new File(paths[position]);
+        File file = new File(paths.get(position));
         mvh.tvFileName.setText(file.getName());
         mvh.tvSize.setText(Utils.bytesToKB(file.length())+" KB");
     }
 
     @Override
     public int getItemCount() {
-        return paths.length;
+        return paths.size();
     }
 
     @Override

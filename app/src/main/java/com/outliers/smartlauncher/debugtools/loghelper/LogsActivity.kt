@@ -76,7 +76,7 @@ class LogsActivity : AppCompatActivity(), FilesRVAdapterParent {
         intent.putExtra(Intent.EXTRA_SUBJECT, "User Logs")
         intent.putExtra(Intent.EXTRA_TEXT, getString(R.string.issue_mail_template))
         try {
-            val sourceDir: File = Utils.getAppFolderInternal(this)
+            val sourceDir: File = Utils.getAppLogFolderInternal(this)
             val files: Array<File> = sourceDir.listFiles()
             val uris: ArrayList<Uri> = ArrayList()
             Log.e("getAllFilesInDir", "Size: " + files.size)

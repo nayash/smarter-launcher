@@ -57,7 +57,7 @@ public class LogHelper {
     private SharedPreferences logSP;
 
     public static LogHelper getLogHelper(Context context) {
-        if(logHelper == null) {
+        if (logHelper == null) {
             Log.e("test-logHelper", "constructor called");
             logHelper = new LogHelper(context);
         }
@@ -65,14 +65,14 @@ public class LogHelper {
         return logHelper;
     }
 
-    private LogHelper(Context context){
+    private LogHelper(Context context) {
         this.context = context;
         application = (Application) context.getApplicationContext();
-        logFile = new File(Utils.getAppFolderInternal(context),LOG_FILE_PREFIX +
-                Utils.getDate(System.currentTimeMillis(), LOG_FILE_NAME_FORMAT)+".txt");
-        Log.d("test-LogHelper",logFile.getAbsolutePath());
+        logFile = new File(Utils.getAppLogFolderInternal(context), LOG_FILE_PREFIX +
+                Utils.getDate(System.currentTimeMillis(), LOG_FILE_NAME_FORMAT) + ".txt");
+        Log.d("test-LogHelper", logFile.getAbsolutePath());
 
-        if(!logFile.exists()) {
+        if (!logFile.exists()) {
             try {
                 logFile.createNewFile();
                 //TODO write device details here
@@ -85,7 +85,7 @@ public class LogHelper {
         init();
     }
 
-    private void init(){
+    private void init() {
         lock = new Object();
         llPendingLogs = new LinkedList<>();
         executorService = Executors.newFixedThreadPool(5);
@@ -116,67 +116,67 @@ public class LogHelper {
         flush();
     }
 
-    private void writeDeviceDetails(){
+    private void writeDeviceDetails() {
         try {
-            addLogToQueue("App version : " + Utils.getLibVersion()+
-                    ", Device details : "+ Utils.getDeviceDetails(), LOG_LEVEL.INFO, "LogHelper");
+            addLogToQueue("App version : " + Utils.getLibVersion() +
+                    ", Device details : " + Utils.getDeviceDetails(), LOG_LEVEL.INFO, "LogHelper");
             // llPendingLogs.add("App version is : " + ProjectUtil.getAppVersion(context));
-        }catch (Exception ex){
+        } catch (Exception ex) {
             Log.d("logging-exp", ex.getMessage());
         }
     }
 
-    public SharedPreferences getLogSharedPref(){
-        if(logSP == null)
+    public SharedPreferences getLogSharedPref() {
+        if (logSP == null)
             logSP = application.getSharedPreferences("LogHelper", Context.MODE_PRIVATE);
 
         return logSP;
     }
 
-    private void flushPreviousSessionLogs(){
-        String pendingLogs = getLogSharedPref().getString(SHARED_PREF_KEY_PENDING_LOG,"");
+    private void flushPreviousSessionLogs() {
+        String pendingLogs = getLogSharedPref().getString(SHARED_PREF_KEY_PENDING_LOG, "");
         //Log.e("init","pending:"+pendingLogs);
-        if(!pendingLogs.isEmpty())
+        if (!pendingLogs.isEmpty())
             llPendingLogs.addAll(Arrays.asList(pendingLogs.split("\n")));
         writePendingLogs();
 
         SharedPreferences pref = context.getSharedPreferences(Constants.Companion.getPREF_NAME(),
                 Context.MODE_PRIVATE);
         boolean crashRestart = pref.getBoolean("crash_restart", false);
-        Log.v("flushPrevLog", crashRestart+", "+pendingLogs);
-        pref.edit().putString(SHARED_PREF_KEY_PENDING_LOG,"").commit();
+        Log.v("flushPrevLog", crashRestart + ", " + pendingLogs);
+        pref.edit().putString(SHARED_PREF_KEY_PENDING_LOG, "").commit();
         if (crashRestart) {
             pref.edit().putBoolean("crash_restart", false).apply();
             pref.edit().putString("crash_id", "").apply();
         }
     }
 
-    public void addLogToQueue(String logText, LOG_LEVEL level, String callingComponentName){
-        if(logText == null || level == null) {
+    public void addLogToQueue(String logText, LOG_LEVEL level, String callingComponentName) {
+        if (logText == null || level == null) {
             //Log.e("addLogToQueue", "Parameters can't be null. Log skipped");
             return;
         }
-        if(callingComponentName == null)
+        if (callingComponentName == null)
             callingComponentName = "";
 
-        addLogToQueue(formatLogText(logText,level,callingComponentName));
+        addLogToQueue(formatLogText(logText, level, callingComponentName));
     }
 
-    public void addLogToQueue(String logText, LOG_LEVEL level, Context callingComponent){
-        if(logText == null || level == null || callingComponent == null) {
+    public void addLogToQueue(String logText, LOG_LEVEL level, Context callingComponent) {
+        if (logText == null || level == null || callingComponent == null) {
             //Log.e("addLogToQueue", "Parameters can't be null. Log skipped");
             return;
         }
         //Log.e("addLogToQueueCtx", "Called");
-        addLogToQueue(logText,level,callingComponent.getClass().getSimpleName());
+        addLogToQueue(logText, level, callingComponent.getClass().getSimpleName());
     }
 
-    private synchronized void addLogToQueue(String logText){ //TODO skips events in quick succession.Fix it!
-        if(!isLoggingAllowed)
+    private synchronized void addLogToQueue(String logText) { //TODO skips events in quick succession.Fix it!
+        if (!isLoggingAllowed)
             return;
 
         synchronized (lock) {
-            if(BuildConfig.DEBUG)
+            if (BuildConfig.DEBUG)
                 Log.e("test-addLogToQueueMain", logText);
             llPendingLogs.addLast(logText);
             //Log.e("addLogQ",llPendingLogs.size()+"");
@@ -192,20 +192,20 @@ public class LogHelper {
         }
     }
 
-    private synchronized void writePendingLogs(){
+    private synchronized void writePendingLogs() {
         executorService.submit(writeLogAsyncRunnable);
     }
 
-    public void disableLogging(){
+    public void disableLogging() {
         writePendingLogs();
         isLoggingAllowed = false;
     }
 
-    public void enableLogging(){
+    public void enableLogging() {
         isLoggingAllowed = true;
     }
 
-    private void writeLogs(){ /** Never call directly. Call writePendingLogs instead which executes this in separate thread **/
+    private void writeLogs() { /** Never call directly. Call writePendingLogs instead which executes this in separate thread **/
         synchronized (lock) {
             String s;
             StringBuilder sb = new StringBuilder();
@@ -214,29 +214,28 @@ public class LogHelper {
             }*/
             while ((s = llPendingLogs.poll()) != null) {
                 //Log.e("writeAppending",s);
-                sb.append(s+"\n"); //append formatted texts
+                sb.append(s + "\n"); //append formatted texts
             }
-            sb.deleteCharAt(sb.length()-1);
-            writeLogs(logFile,sb.toString());
+            sb.deleteCharAt(sb.length() - 1);
+            writeLogs(logFile, sb.toString());
         }
     }
 
 
     //<editor-fold desc="Log File Delete Methods">
-    public String[] getAllFilesInDir(){
+    public String[] getAllFilesInDir() {
         File directory = new File(logFile.getParent());
         File[] files = directory.listFiles();
         String[] paths = new String[files.length];
-        Log.d("getAllFilesInDir", "Size: "+ files.length);
-        for (int i = 0; i < files.length; i++)
-        {
+        Log.d("getAllFilesInDir", "Size: " + files.length);
+        for (int i = 0; i < files.length; i++) {
             Log.d("getAllFilesInDir", "FileName:" + files[i].getName());
             paths[i] = files[i].getAbsolutePath();
         }
         return paths;
     }
 
-    public void printLogFileContent(){
+    public void printLogFileContent() {
         try (BufferedReader br = new BufferedReader(new FileReader(logFile.getAbsolutePath()))) {
             StringBuilder sb = new StringBuilder();
             String line = br.readLine();
@@ -250,7 +249,7 @@ public class LogHelper {
         }
     }
 
-    public String getFileContent(String filePath){
+    public String getFileContent(String filePath) {
         StringBuilder sb = new StringBuilder();
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line = br.readLine();
@@ -260,12 +259,12 @@ public class LogHelper {
                 line = br.readLine();
             }
         } catch (Exception ex) {
-            Log.e("Error","printFileContent", ex);
+            Log.e("Error", "printFileContent", ex);
         }
         return sb.toString();
     }
 
-    public void deleteLogFile_NameLike(String fileNameLike){
+    public void deleteLogFile_NameLike(String fileNameLike) {
         File directory = new File(logFile.getParent());
         File[] files = directory.listFiles();
         //Log.e("deleteLogFile_NameLike", "Size: "+ files.length);
@@ -277,7 +276,7 @@ public class LogHelper {
         }
     }
 
-    public void deleteLogFile_NameNotLike(String fileNameLike){
+    public void deleteLogFile_NameNotLike(String fileNameLike) {
         File directory = new File(logFile.getParent());
         File[] files = directory.listFiles();
         //Log.e("deleteLog_NameNotLike", "Size: "+ files.length);
@@ -289,14 +288,13 @@ public class LogHelper {
         }
     }
 
-    public void deleteLogFile_NameNotIn(String[] fileNameLike){
+    public void deleteLogFile_NameNotIn(String[] fileNameLike) {
         File directory = new File(logFile.getParent());
         File[] files = directory.listFiles();
         List<String> namesToKeep = Arrays.asList(fileNameLike);
         int count = 0;
-        for (int i = 0; i < files.length; i++)
-        {
-            if(!namesToKeep.contains(getLogFileDate(files[i].getName()))){
+        for (int i = 0; i < files.length; i++) {
+            if (!namesToKeep.contains(getLogFileDate(files[i].getName()))) {
                 //Log.e("deleteLogFile","deleting "+files[i].getName());
                 files[i].delete();
                 count++;
@@ -305,31 +303,30 @@ public class LogHelper {
         //Log.e("deleteLogFile",count+" files deleted");
     }
 
-    public String getLogFileDate(String fileName){
-        return fileName.replace(LOG_FILE_PREFIX,"").replace(".txt","");
+    public String getLogFileDate(String fileName) {
+        return fileName.replace(LOG_FILE_PREFIX, "").replace(".txt", "");
     }
 
-    public void deleteAllLogFile(){
+    public void deleteAllLogFile() {
         File directory = new File(logFile.getParent());
         File[] files = directory.listFiles();
         //Log.e("deleteAllLogFile", "Size: "+ files.length);
-        for (int i = 0; i < files.length; i++)
-        {
+        for (int i = 0; i < files.length; i++) {
             //Log.e("deleteAllLogFile", "FileName:" + files[i].getName());
             files[i].delete();
         }
     }
 
-    public void deleteOldLogs(int pastDaysToKeep){
-        if(pastDaysToKeep == -1)
+    public void deleteOldLogs(int pastDaysToKeep) {
+        if (pastDaysToKeep == -1)
             pastDaysToKeep = PAST_DAYS_LOGS_TO_KEEP;
 
         Calendar calendar = Calendar.getInstance();
         Calendar temp = Calendar.getInstance();
         String[] daysToKeep = new String[pastDaysToKeep];
-        for(int i=0; i<pastDaysToKeep; i++){
-            temp.set(Calendar.DAY_OF_MONTH, calendar.get(Calendar.DAY_OF_MONTH) - i );
-            daysToKeep[i] = Utils.getDate(temp.getTimeInMillis(),LOG_FILE_NAME_FORMAT);
+        for (int i = 0; i < pastDaysToKeep; i++) {
+            temp.set(Calendar.DAY_OF_MONTH, calendar.get(Calendar.DAY_OF_MONTH) - i);
+            daysToKeep[i] = Utils.getDate(temp.getTimeInMillis(), LOG_FILE_NAME_FORMAT);
         }
         deleteLogFile_NameNotIn(daysToKeep);
     }
@@ -345,8 +342,8 @@ public class LogHelper {
         }
     }
 
-    private String formatLogText(String logText, LOG_LEVEL logLevel, String componentName){
-        return convertToLogTime(System.currentTimeMillis())+"/"+componentName+"/"+logLevel.name().charAt(0)+" "+logText;
+    private String formatLogText(String logText, LOG_LEVEL logLevel, String componentName) {
+        return convertToLogTime(System.currentTimeMillis()) + "/" + componentName + "/" + logLevel.name().charAt(0) + " " + logText;
     }
 
     private void writeLogs(File logFile, String logText) {
@@ -373,7 +370,7 @@ public class LogHelper {
                         buf.flush();
                         buf.close();
                     }
-                }else{
+                } else {
                     //TODO write in log that memory is insufficient
                 }
             }
@@ -397,51 +394,51 @@ public class LogHelper {
     }
     //</editor-fold>
 
-    public void logFWFinish(){
+    public void logFWFinish() {
         /** do all resource clean up here **/
         //Log.e("LogFWFinish","Called");
         flush();
         //TODO use handler to wait for 3 seconds before shutting down. If getInstance called again cancel the handler.
-        shutdownHandler.postDelayed(shutdownRunnable,5000);
+        shutdownHandler.postDelayed(shutdownRunnable, 5000);
         //logHelper = null;
     }
 
-    public void flush(){
-        if(llPendingLogs.size() > 0)
+    public void flush() {
+        if (llPendingLogs.size() > 0)
             writePendingLogs();
     }
 
-    public void flushToSP(){
+    public void flushToSP() {
         StringBuilder sb = new StringBuilder();
-        while(llPendingLogs.size()>0){
+        while (llPendingLogs.size() > 0) {
             sb.append(llPendingLogs.poll());
             sb.append("\n");
         }
-        getLogSharedPref().edit().putString(SHARED_PREF_KEY_PENDING_LOG,sb.toString()).commit();
+        getLogSharedPref().edit().putString(SHARED_PREF_KEY_PENDING_LOG, sb.toString()).commit();
     }
 
-    public void pause(){
+    public void pause() {
         flush();
-        shutdownHandler.postDelayed(shutdownRunnable,5000);
+        shutdownHandler.postDelayed(shutdownRunnable, 5000);
     }
 
-    public void resume(){
+    public void resume() {
         //flushPreviousSessionLogs();
-        if(shutdownHandler != null)
+        if (shutdownHandler != null)
             shutdownHandler.removeCallbacks(shutdownRunnable);
     }
 
-    public String getTempDir(Context context){
-        return context.getCacheDir()+"/.logtemp";
+    public String getTempDir(Context context) {
+        return context.getCacheDir() + "/.logtemp";
     }
 
-    public void handleCrash(Context context, Throwable exception, String crashId){
+    public void handleCrash(Context context, Throwable exception, String crashId) {
         LogHelper.getLogHelper(context).flushToSP();
-        String pendingLogs = LogHelper.getLogHelper(application).getLogSharedPref().getString(LogHelper.SHARED_PREF_KEY_PENDING_LOG,"");
+        String pendingLogs = LogHelper.getLogHelper(application).getLogSharedPref().getString(LogHelper.SHARED_PREF_KEY_PENDING_LOG, "");
         LogHelper.getLogHelper(application).getLogSharedPref().edit().putString(
-                LogHelper.SHARED_PREF_KEY_PENDING_LOG,pendingLogs+"crashId->"+crashId+":\n"+
+                LogHelper.SHARED_PREF_KEY_PENDING_LOG, pendingLogs + "crashId->" + crashId + ":\n" +
                         formatLogText(Log.getStackTraceString(exception),
-                                LOG_LEVEL.CRITICAL,context.getClass().getSimpleName())).commit();
+                                LOG_LEVEL.CRITICAL, context.getClass().getSimpleName())).commit();
     }
 }
 

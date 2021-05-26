@@ -270,6 +270,24 @@ object Utils {
     }
 
     @JvmStatic
+    fun getAppDataFolderInternal(context: Context): File {
+        val file = File(getAppFolderInternal(context), "data")
+        if (!file.exists()) {
+            file.mkdir()
+        }
+        return file
+    }
+
+    @JvmStatic
+    fun getAppLogFolderInternal(context: Context): File {
+        val file = File(getAppFolderInternal(context), "logs")
+        if (!file.exists()) {
+            file.mkdir()
+        }
+        return file
+    }
+
+    @JvmStatic
     fun getDate(timeInMilli: Long, format: String?): String? {
         return if (timeInMilli != 0L) {
             val sdf = SimpleDateFormat(format ?: "dd/MM/yyyy")

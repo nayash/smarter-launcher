@@ -15,4 +15,5 @@
     <string name="show_logs">Show logs</string>
     <string name="show_data_files">Show data files</string>
     <string name="all_files_permission">Try giving files permission of type "All management of all files"</string>
+    <string name="restore_files">Restore previous data</string>
 </resources>

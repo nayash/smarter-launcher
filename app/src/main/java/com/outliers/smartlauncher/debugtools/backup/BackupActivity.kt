@@ -8,15 +8,18 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.OpenableColumns
 import android.util.Log
+import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat.requestPermissions
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.MutableLiveData
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.outliers.smartlauncher.R
 import com.outliers.smartlauncher.consts.Constants
+import com.outliers.smartlauncher.databinding.ActivityBackupBinding
 import com.outliers.smartlauncher.debugtools.loghelper.LogHelper
 import com.outliers.smartlauncher.utils.Utils
 import kotlinx.coroutines.CoroutineScope
@@ -28,22 +31,49 @@ import java.io.*
 
 class BackupActivity : AppCompatActivity(), FilesRVAdapter.FilesRVAdapterParent {
     private val PICK_FILE_REQUEST_CODE: Int = 2
+    private val PICK_FILES_REQUEST_CODE: Int = 3
     private val CREATE_FILE: Int = 1
-    private lateinit var dataFiles: List<String>
-    private val rootPath by lazy { Utils.getAppFolderInternal(this) }
+    private lateinit var dataFiles: MutableList<String>
+    private val dataFilesLiveData = MutableLiveData<MutableList<String>>()
+    private val rootPath by lazy { Utils.getAppDataFolderInternal(this) }
+    val binding by lazy { ActivityBackupBinding.inflate(layoutInflater) }
     var rvFiles: RecyclerView? = null
     var replaceFilePath: String? = null
+    val backupPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_backup)
+        setContentView(binding.root)
 
         dataFiles = rootPath.listFiles().map { it.absolutePath }
-            .filter { !it.contains(LogHelper.LOG_FILE_PREFIX) }
-        rvFiles = findViewById(R.id.rv_log_files)
-        val adapter = FilesRVAdapter(dataFiles.toList().toTypedArray(), this)
+            .filter { !it.contains(LogHelper.LOG_FILE_PREFIX) }.toMutableList()
+        dataFilesLiveData.value = dataFiles
+        rvFiles = binding.rvLogFiles
+        val adapter = FilesRVAdapter(dataFiles as java.util.ArrayList<String>?, this)
         rvFiles?.layoutManager = LinearLayoutManager(this)
         rvFiles?.adapter = adapter
+
+        dataFilesLiveData.observe(this, {
+            if (it.isEmpty()) {
+                binding.tvRestore.visibility = View.VISIBLE
+                rvFiles?.visibility = View.GONE
+                binding.tvRestore.setOnClickListener {
+                    restoreAllData()
+                }
+            } else {
+                binding.tvRestore.visibility = View.GONE
+                rvFiles?.visibility = View.VISIBLE
+            }
+            Log.d("test-observe", it.size.toString())
+            rvFiles?.adapter?.notifyDataSetChanged()
+        })
+    }
+
+    fun restoreAllData() {
+        val intent = Intent(Intent.ACTION_GET_CONTENT)
+        intent.type = "*/*"
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+        startActivityForResult(intent, PICK_FILES_REQUEST_CODE)
     }
 
     override fun itemClicked(position: Int, path: String) {
@@ -58,9 +88,7 @@ class BackupActivity : AppCompatActivity(), FilesRVAdapter.FilesRVAdapterParent 
 
     override fun save(position: Int, path: String) {
         createFile(
-            Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_DOWNLOADS
-            ).absolutePath, path
+            backupPath.absolutePath, path
         )
     }
 
@@ -107,7 +135,8 @@ class BackupActivity : AppCompatActivity(), FilesRVAdapter.FilesRVAdapterParent 
                         this
                     )
                 FirebaseCrashlytics.getInstance().recordException(ex)
-                Toast.makeText(context, getText(R.string.all_files_permission), Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, getText(R.string.all_files_permission), Toast.LENGTH_SHORT)
+                    .show()
             }
         }
         /*CoroutineScope(Dispatchers.IO).launch {
@@ -192,11 +221,31 @@ class BackupActivity : AppCompatActivity(), FilesRVAdapter.FilesRVAdapterParent 
                 val uri = data?.data
                 if (uri != null) {
                     val fileName = getFileName(uri)
-                    val file = File(Utils.getAppFolderInternal(this), fileName)
+                    val file = File(rootPath, fileName)
                     copyToFile(uri, file)
                     Log.d("onActivityRes", "test-copied to ${file.absolutePath}")
                     rvFiles?.adapter?.notifyDataSetChanged()
                     sendBroadcast(Intent(Constants.ACTION_LAUNCHER_DATA_REFRESH))
+                }
+            }
+        } else if (requestCode == PICK_FILES_REQUEST_CODE) {
+            if (resultCode == RESULT_OK) {
+                data?.let {
+                    val tempList = ArrayList<String>()
+                    val count = it.clipData?.itemCount ?: 0
+                    for (i in 0 until count) {
+                        val uri = it.clipData?.getItemAt(i)?.uri
+                        uri?.let {
+                            val fileName = getFileName(uri)
+                            val file = File(rootPath, fileName)
+                            copyToFile(uri, file)
+                            tempList.add(file.absolutePath)
+                            Log.d("onActivityRes", "test-copyAll ${file.absolutePath}")
+                        }
+                    }
+                    dataFiles.addAll(tempList)
+                    dataFilesLiveData.value = dataFiles
+                    rvFiles?.adapter?.notifyDataSetChanged()
                 }
             }
         }

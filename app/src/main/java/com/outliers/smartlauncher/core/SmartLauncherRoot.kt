@@ -478,7 +478,7 @@ class SmartLauncherRoot private constructor(val context: Context,
         if(launchSequence.size == 0)
             return
         val fileLaunchSeq = File(
-            Utils.getAppFolderInternal(context),
+            Utils.getAppDataFolderInternal(context),
             Constants.LAUNCH_SEQUENCE_SAVE_FILE
         )
         // Utils.writeToFile(context, fileLaunchSeq.absolutePath, launchSequence)
@@ -489,7 +489,7 @@ class SmartLauncherRoot private constructor(val context: Context,
         if(launchHistoryList.isEmpty())
             return
         val file = File(
-            Utils.getAppFolderInternal(context),
+            Utils.getAppDataFolderInternal(context),
             Constants.LAUNCH_HISTORY_SAVE_FILE
         )
         // Utils.writeToFile(context, file.absolutePath, launchHistoryList)
@@ -502,7 +502,7 @@ class SmartLauncherRoot private constructor(val context: Context,
         if(appSuggestions.isEmpty())
             return
         val file = File(
-            Utils.getAppFolderInternal(context),
+            Utils.getAppDataFolderInternal(context),
             Constants.APP_SUGGESTIONS_SAVE_FILE
         )
         val temp: List<String> = appSuggestions.map { it.packageName }
@@ -512,7 +512,7 @@ class SmartLauncherRoot private constructor(val context: Context,
 
     suspend fun loadLaunchSequence() {
         val fileLaunchSeq = File(
-            Utils.getAppFolderInternal(context),
+            Utils.getAppDataFolderInternal(context),
             Constants.LAUNCH_SEQUENCE_SAVE_FILE
         )
         if(!fileLaunchSeq.exists())
@@ -537,7 +537,7 @@ class SmartLauncherRoot private constructor(val context: Context,
 
     suspend fun loadLaunchHistory() {
         val file = File(
-            Utils.getAppFolderInternal(context),
+            Utils.getAppDataFolderInternal(context),
             Constants.LAUNCH_HISTORY_SAVE_FILE
         )
         if(!file.exists())
@@ -575,7 +575,7 @@ class SmartLauncherRoot private constructor(val context: Context,
 
     suspend fun loadPreds() {
         val file = File(
-            Utils.getAppFolderInternal(context),
+            Utils.getAppDataFolderInternal(context),
             Constants.APP_SUGGESTIONS_SAVE_FILE
         )
         if(!file.exists())
