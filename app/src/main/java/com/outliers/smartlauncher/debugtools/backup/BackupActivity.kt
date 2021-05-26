@@ -246,6 +246,7 @@ class BackupActivity : AppCompatActivity(), FilesRVAdapter.FilesRVAdapterParent 
                     dataFiles.addAll(tempList)
                     dataFilesLiveData.value = dataFiles
                     rvFiles?.adapter?.notifyDataSetChanged()
+                    sendBroadcast(Intent(Constants.ACTION_LAUNCHER_DATA_REFRESH))
                 }
             }
         }
