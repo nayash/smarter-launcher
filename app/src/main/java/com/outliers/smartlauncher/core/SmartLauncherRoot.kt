@@ -73,8 +73,7 @@ class SmartLauncherRoot private constructor(
     var currentLocation: Location? = null
 
     companion object {
-        private var outliersLauncherRoot: SmartLauncherRoot? =
-            null  // TODO warning--context in static field; memory leak.
+        private var outliersLauncherRoot: SmartLauncherRoot? = null
 
         fun getInstance(
             context: Context,
@@ -253,8 +252,6 @@ class SmartLauncherRoot private constructor(
          * DayOfMonth (not in paper), Time (hourOfDay), location, weekend, AM, BTheadset, wiredHeadset, charging,
          * cellularDataActive, wifiConnected, battery, ATF
          */
-        // TODO this size will change when apps are installed or uninstalled. Need to handle such cases: one possible
-        // approach is to remove the appIdx from all launch vectors (for uninstall) and for new installations, add app to bottom of array
         val vecSize = EXPLICIT_FEATURES_COUNT + allInstalledApps.size
         // println("genAppLaunchVec- $vecSize, $EXPLICIT_FEATURES_COUNT, ${allInstalledApps.size}")
         val launchVec = ArrayRealVector(vecSize)
@@ -338,7 +335,7 @@ class SmartLauncherRoot private constructor(
                 launchVec.setEntry(
                     EXPLICIT_FEATURES_COUNT + appIdx!!,
                     appValue
-                )  // TODO IMP!!! crash here: DefaultDispatcher-worker-3 Process: com.outliers.smartlauncher, PID: 15033 java.lang.NullPointerException
+                )
                 Log.d("test-ATF-val", "$packageName, $appIdx, $EXPLICIT_FEATURES_COUNT, $appValue")
             }
             Log.v("test-appToIdx", appToIdxMap.toString())
@@ -563,6 +560,7 @@ class SmartLauncherRoot private constructor(
     }
 
     suspend fun loadLaunchHistory() {
+        // TODO handle the scenario where saved file launchVec size is different from current installed apps size
         val file = File(
             Utils.getAppDataFolderInternal(context),
             Constants.LAUNCH_HISTORY_SAVE_FILE

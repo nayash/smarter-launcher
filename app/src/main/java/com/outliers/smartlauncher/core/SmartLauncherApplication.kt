@@ -44,13 +44,11 @@ class SmartLauncherApplication : Application() {
 
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, exception ->
-            // if crash involves any component of HLIB Library, log it; you could remove this check and log all crashes too and use this for your own debugging as well
-            // Save the fact we crashed out.
             val crashId: String =
-                UUID.randomUUID().toString() // optional -- can be set to any value
+                UUID.randomUUID().toString()
             smartLauncherRoot?.launcherPref?.edit()?.putBoolean("crash_restart", true)?.commit()
             smartLauncherRoot?.launcherPref?.edit()?.putString("crash_id", crashId)?.commit()
-            LogHelper.getLogHelper(this).handleCrash(this, exception, crashId)
+            LogHelper.getLogHelper(this)?.handleCrash(this, exception, crashId)
             val test: Boolean =
                 smartLauncherRoot?.launcherPref?.getBoolean(
                     "crash_restart",
@@ -60,7 +58,7 @@ class SmartLauncherApplication : Application() {
             defaultHandler.uncaughtException(
                 thread,
                 exception
-            ) // this without crashAct call,without run delay,without SysExit works(doesn't hang)
+            )
         }
     }
 
@@ -81,7 +79,6 @@ class SmartLauncherApplication : Application() {
     }
 
     fun cleanAndBackUp() {
-        // TODO resource/cache cleanup, if any
         smartLauncherRoot?.cleanUp()
     }
 

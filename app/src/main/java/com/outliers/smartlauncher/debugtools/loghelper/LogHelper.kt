@@ -7,448 +7,415 @@
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  */
+package com.outliers.smartlauncher.debugtools.loghelper
 
-package com.outliers.smartlauncher.debugtools.loghelper;
+import android.app.Application
+import android.content.Context
+import android.content.SharedPreferences
+import android.os.Handler
+import android.os.StatFs
+import android.util.Log
+import com.outliers.smartlauncher.BuildConfig
+import com.outliers.smartlauncher.consts.Constants.Companion.PREF_NAME
+import com.outliers.smartlauncher.utils.Utils.getAppLogFolderInternal
+import com.outliers.smartlauncher.utils.Utils.getDate
+import com.outliers.smartlauncher.utils.Utils.getDeviceDetails
+import com.outliers.smartlauncher.utils.Utils.getLibVersion
+import java.io.*
+import java.text.Format
+import java.text.SimpleDateFormat
+import java.util.*
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
-import android.app.Application;
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.os.Handler;
-import android.os.StatFs;
-import android.util.Log;
+class LogHelper private constructor(private val context: Context) {
+    private val LOG_WRITE_BATCH_SIZE = 20
+    private val PAST_DAYS_LOGS_TO_KEEP = 4
 
-import com.outliers.smartlauncher.BuildConfig;
-import com.outliers.smartlauncher.consts.Constants;
-import com.outliers.smartlauncher.utils.Utils;
-
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.text.Format;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
-public class LogHelper {
-
-    public static final String LOG_FILE_NAME_FORMAT = "dd_MM_yyyy"; //-HH_mm_ss
-    public static final String LOG_INFO_PREFIX_DATE_FORMAT = "HH:mm:ss"; //dd MM yyyy
-    private final int LOG_WRITE_BATCH_SIZE = 20;
-    private final int PAST_DAYS_LOGS_TO_KEEP = 4;
-    public static final String LOG_FILE_PREFIX = "SmartLauncherLog_";
-    public static final String SHARED_PREF_KEY_PENDING_LOG = "pending_logs";
-    //public static final String LOG_TEMP_DIR = Environment.getExternalStorageDirectory()+"/.logtemp";
-
-    public enum LOG_LEVEL {INFO, WARNING, ERROR, CRITICAL}
-
-    private static LogHelper logHelper;
-    private File logFile;
-    private LinkedList<String> llPendingLogs;
-    private ExecutorService executorService;
-    private Runnable writeLogAsyncRunnable;
-    private boolean isLoggingAllowed = true;
-    private Object lock;
-    private Format logDateTimeFormat; //log text prefix
-    private Date dummyDateObj;
-    Handler shutdownHandler;
-    Runnable shutdownRunnable;
-    Application application;
-    private Context context;
-    private SharedPreferences logSP;
-
-    public static LogHelper getLogHelper(Context context) {
-        if (logHelper == null) {
-            Log.e("test-logHelper", "constructor called");
-            logHelper = new LogHelper(context);
-        }
-
-        return logHelper;
+    enum class LOG_LEVEL {
+        INFO, WARNING, ERROR, CRITICAL
     }
 
-    private LogHelper(Context context) {
-        this.context = context;
-        application = (Application) context.getApplicationContext();
-        logFile = new File(Utils.getAppLogFolderInternal(context), LOG_FILE_PREFIX +
-                Utils.getDate(System.currentTimeMillis(), LOG_FILE_NAME_FORMAT) + ".txt");
-        Log.d("test-LogHelper", logFile.getAbsolutePath());
+    private val logFile: File
+    private var llPendingLogs: LinkedList<String>? = null
+    private val executorService: ExecutorService = Executors.newFixedThreadPool(5)
+    private var writeLogAsyncRunnable: Runnable? = null
+    private var isLoggingAllowed = true
+    private var lock: Any? = null
+    private var logDateTimeFormat: Format? = null
+    private var dummyDateObj: Date? = null
+    private var shutdownHandler: Handler? = null
+    private var shutdownRunnable: Runnable? = null
+    var application: Application = context.applicationContext as Application
+    private var logSP: SharedPreferences? = null
 
-        if (!logFile.exists()) {
+    private fun init() {
+        lock = Any()
+        llPendingLogs = LinkedList()
+        writeLogAsyncRunnable = Runnable { writeLogs() }
+        logDateTimeFormat = SimpleDateFormat(LOG_INFO_PREFIX_DATE_FORMAT)
+        dummyDateObj = Date()
+        shutdownRunnable = Runnable {
+            executorService.shutdown()
             try {
-                logFile.createNewFile();
-                //TODO write device details here
-                deleteOldLogs(PAST_DAYS_LOGS_TO_KEEP);
-            } catch (IOException e) {
-                //e.printStackTrace();
+                executorService.awaitTermination(10, TimeUnit.SECONDS)
+            } catch (e: InterruptedException) {
+
             }
+            logHelper = null
         }
-
-        init();
+        shutdownHandler = Handler()
+        flushPreviousSessionLogs()
+        writeDeviceDetails()
+        flush()
     }
 
-    private void init() {
-        lock = new Object();
-        llPendingLogs = new LinkedList<>();
-        executorService = Executors.newFixedThreadPool(5);
-        writeLogAsyncRunnable = new Runnable() {
-            @Override
-            public void run() {
-                writeLogs();
-            }
-        };
-        logDateTimeFormat = new SimpleDateFormat(LOG_INFO_PREFIX_DATE_FORMAT);
-        dummyDateObj = new Date();
-        shutdownRunnable = new Runnable() {
-            @Override
-            public void run() {
-                executorService.shutdown(); //shuts down service after finishing pending tasks
-                try {
-                    //Log.e("LogFWFinish", "Shutting Down...");
-                    executorService.awaitTermination(10, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    //Log.e("LogFWF", "E", e);
-                }
-                logHelper = null;
-            }
-        };
-        shutdownHandler = new Handler();
-        flushPreviousSessionLogs();
-        writeDeviceDetails();
-        flush();
-    }
-
-    private void writeDeviceDetails() {
+    private fun writeDeviceDetails() {
         try {
-            addLogToQueue("App version : " + Utils.getLibVersion() +
-                    ", Device details : " + Utils.getDeviceDetails(), LOG_LEVEL.INFO, "LogHelper");
-            // llPendingLogs.add("App version is : " + ProjectUtil.getAppVersion(context));
-        } catch (Exception ex) {
-            Log.d("logging-exp", ex.getMessage());
+            addLogToQueue(
+                "App version : " + getLibVersion() +
+                        ", Device details : " + getDeviceDetails(), LOG_LEVEL.INFO, "LogHelper"
+            )
+        } catch (ex: Exception) {
+            Log.d("logging-exp", ex.message!!)
         }
     }
 
-    public SharedPreferences getLogSharedPref() {
-        if (logSP == null)
-            logSP = application.getSharedPreferences("LogHelper", Context.MODE_PRIVATE);
+    val logSharedPref: SharedPreferences?
+        get() {
+            if (logSP == null) logSP =
+                application.getSharedPreferences("LogHelper", Context.MODE_PRIVATE)
+            return logSP
+        }
 
-        return logSP;
-    }
-
-    private void flushPreviousSessionLogs() {
-        String pendingLogs = getLogSharedPref().getString(SHARED_PREF_KEY_PENDING_LOG, "");
-        //Log.e("init","pending:"+pendingLogs);
-        if (!pendingLogs.isEmpty())
-            llPendingLogs.addAll(Arrays.asList(pendingLogs.split("\n")));
-        writePendingLogs();
-
-        SharedPreferences pref = context.getSharedPreferences(Constants.Companion.getPREF_NAME(),
-                Context.MODE_PRIVATE);
-        boolean crashRestart = pref.getBoolean("crash_restart", false);
-        Log.v("flushPrevLog", crashRestart + ", " + pendingLogs);
-        pref.edit().putString(SHARED_PREF_KEY_PENDING_LOG, "").commit();
+    private fun flushPreviousSessionLogs() {
+        val pendingLogs = logSharedPref!!.getString(SHARED_PREF_KEY_PENDING_LOG, "")
+        if (!pendingLogs!!.isEmpty()) llPendingLogs!!.addAll(
+            Arrays.asList(
+                *pendingLogs.split("\n").toTypedArray()
+            )
+        )
+        writePendingLogs()
+        val pref = context.getSharedPreferences(
+            PREF_NAME,
+            Context.MODE_PRIVATE
+        )
+        val crashRestart = pref.getBoolean("crash_restart", false)
+        Log.v("flushPrevLog", "$crashRestart, $pendingLogs")
+        pref.edit().putString(SHARED_PREF_KEY_PENDING_LOG, "").commit()
         if (crashRestart) {
-            pref.edit().putBoolean("crash_restart", false).apply();
-            pref.edit().putString("crash_id", "").apply();
+            pref.edit().putBoolean("crash_restart", false).apply()
+            pref.edit().putString("crash_id", "").apply()
         }
     }
 
-    public void addLogToQueue(String logText, LOG_LEVEL level, String callingComponentName) {
+    fun addLogToQueue(logText: String?, level: LOG_LEVEL?, callingComponentName: String?) {
+        var callingComponentName = callingComponentName
         if (logText == null || level == null) {
-            //Log.e("addLogToQueue", "Parameters can't be null. Log skipped");
-            return;
+            return
         }
-        if (callingComponentName == null)
-            callingComponentName = "";
-
-        addLogToQueue(formatLogText(logText, level, callingComponentName));
+        if (callingComponentName == null) callingComponentName = ""
+        addLogToQueue(formatLogText(logText, level, callingComponentName))
     }
 
-    public void addLogToQueue(String logText, LOG_LEVEL level, Context callingComponent) {
+    fun addLogToQueue(logText: String?, level: LOG_LEVEL?, callingComponent: Context?) {
         if (logText == null || level == null || callingComponent == null) {
-            //Log.e("addLogToQueue", "Parameters can't be null. Log skipped");
-            return;
+            return
         }
-        //Log.e("addLogToQueueCtx", "Called");
-        addLogToQueue(logText, level, callingComponent.getClass().getSimpleName());
+        addLogToQueue(logText, level, callingComponent.javaClass.simpleName)
     }
 
-    private synchronized void addLogToQueue(String logText) { //TODO skips events in quick succession.Fix it!
-        if (!isLoggingAllowed)
-            return;
-
-        synchronized (lock) {
-            if (BuildConfig.DEBUG)
-                Log.e("test-addLogToQueueMain", logText);
-            llPendingLogs.addLast(logText);
-            //Log.e("addLogQ",llPendingLogs.size()+"");
-            if (llPendingLogs.size() >= LOG_WRITE_BATCH_SIZE) {
-                /*try { //TODO force system to wait adding logs and start writing to file
-                    lock.wait();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }*/
-                /** if collection size exceeds max allowed queue size, call write method and dump written texts **/
-                writePendingLogs();
+    @Synchronized
+    private fun addLogToQueue(logText: String) {
+        if (!isLoggingAllowed) return
+        synchronized(lock!!) {
+            if (BuildConfig.DEBUG) Log.e("test-addLogToQueueMain", logText)
+            llPendingLogs!!.addLast(logText)
+            if (llPendingLogs!!.size >= LOG_WRITE_BATCH_SIZE) {
+                /** if collection size exceeds max allowed queue size,
+                 * call write method and dump written texts  */
+                writePendingLogs()
             }
         }
     }
 
-    private synchronized void writePendingLogs() {
-        executorService.submit(writeLogAsyncRunnable);
+    @Synchronized
+    private fun writePendingLogs() {
+        executorService!!.submit(writeLogAsyncRunnable)
     }
 
-    public void disableLogging() {
-        writePendingLogs();
-        isLoggingAllowed = false;
+    fun disableLogging() {
+        writePendingLogs()
+        isLoggingAllowed = false
     }
 
-    public void enableLogging() {
-        isLoggingAllowed = true;
+    fun enableLogging() {
+        isLoggingAllowed = true
     }
 
-    private void writeLogs() { /** Never call directly. Call writePendingLogs instead which executes this in separate thread **/
-        synchronized (lock) {
-            String s;
-            StringBuilder sb = new StringBuilder();
-            /*if(Looper.myLooper() == Looper.getMainLooper()){
-                Log.e("writeLogs","Writing on main thread!!!");
-            }*/
-            while ((s = llPendingLogs.poll()) != null) {
-                //Log.e("writeAppending",s);
-                sb.append(s + "\n"); //append formatted texts
+    private fun writeLogs() {
+        /** Never call directly. Call writePendingLogs instead which executes this in separate thread  */
+        synchronized(lock!!) {
+            var s: String
+            val sb = StringBuilder()
+            while (llPendingLogs!!.poll().also { s = it } != null) {
+                sb.append(
+                    s.trimIndent()
+                )
             }
-            sb.deleteCharAt(sb.length() - 1);
-            writeLogs(logFile, sb.toString());
+            sb.deleteCharAt(sb.length - 1)
+            writeLogs(logFile, sb.toString())
         }
     }
 
-
-    //<editor-fold desc="Log File Delete Methods">
-    public String[] getAllFilesInDir() {
-        File directory = new File(logFile.getParent());
-        File[] files = directory.listFiles();
-        String[] paths = new String[files.length];
-        Log.d("getAllFilesInDir", "Size: " + files.length);
-        for (int i = 0; i < files.length; i++) {
-            Log.d("getAllFilesInDir", "FileName:" + files[i].getName());
-            paths[i] = files[i].getAbsolutePath();
-        }
-        return paths;
-    }
-
-    public void printLogFileContent() {
-        try (BufferedReader br = new BufferedReader(new FileReader(logFile.getAbsolutePath()))) {
-            StringBuilder sb = new StringBuilder();
-            String line = br.readLine();
-            while (line != null) {
-                sb.append(line);
-                sb.append("\n");
-                line = br.readLine();
+    val allFilesInDir: Array<String?>
+        get() {
+            val directory = File(logFile.parent)
+            val files = directory.listFiles()
+            val paths = arrayOfNulls<String>(files.size)
+            Log.d("getAllFilesInDir", "Size: " + files.size)
+            for (i in files.indices) {
+                Log.d("getAllFilesInDir", "FileName:" + files[i].name)
+                paths[i] = files[i].absolutePath
             }
-        } catch (Exception ex) {
+            return paths
+        }
+
+    fun printLogFileContent() {
+        try {
+            BufferedReader(FileReader(logFile.absolutePath)).use { br ->
+                val sb = StringBuilder()
+                var line = br.readLine()
+                while (line != null) {
+                    sb.append(line)
+                    sb.append("\n")
+                    line = br.readLine()
+                }
+            }
+        } catch (ex: Exception) {
             //Log.e("Error","printFileContent",ex);
         }
     }
 
-    public String getFileContent(String filePath) {
-        StringBuilder sb = new StringBuilder();
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            String line = br.readLine();
-            while (line != null) {
-                sb.append(line);
-                sb.append("\n");
-                line = br.readLine();
+    fun getFileContent(filePath: String?): String {
+        val sb = StringBuilder()
+        try {
+            BufferedReader(FileReader(filePath)).use { br ->
+                var line = br.readLine()
+                while (line != null) {
+                    sb.append(line)
+                    sb.append("\n")
+                    line = br.readLine()
+                }
             }
-        } catch (Exception ex) {
-            Log.e("Error", "printFileContent", ex);
+        } catch (ex: Exception) {
+            Log.e("Error", "printFileContent", ex)
         }
-        return sb.toString();
+        return sb.toString()
     }
 
-    public void deleteLogFile_NameLike(String fileNameLike) {
-        File directory = new File(logFile.getParent());
-        File[] files = directory.listFiles();
+    fun deleteLogFile_NameLike(fileNameLike: String?) {
+        val directory = File(logFile.parent)
+        val files = directory.listFiles()
         //Log.e("deleteLogFile_NameLike", "Size: "+ files.length);
-        for (File file : files) {
+        for (file in files) {
             //Log.e("deleteLogFile_NameLike", "FileName:" + files[i].getName());
-            if (file.getName().contains(fileNameLike)) {
-                file.delete();
+            if (file.name.contains(fileNameLike!!)) {
+                file.delete()
             }
         }
     }
 
-    public void deleteLogFile_NameNotLike(String fileNameLike) {
-        File directory = new File(logFile.getParent());
-        File[] files = directory.listFiles();
+    fun deleteLogFile_NameNotLike(fileNameLike: String?) {
+        val directory = File(logFile.parent)
+        val files = directory.listFiles()
         //Log.e("deleteLog_NameNotLike", "Size: "+ files.length);
-        for (File file : files) {
+        for (file in files) {
             //Log.e("deleteLog_NameNotLike", "FileName:" + files[i].getName());
-            if (!file.getName().contains(fileNameLike)) {
-                file.delete();
+            if (!file.name.contains(fileNameLike!!)) {
+                file.delete()
             }
         }
     }
 
-    public void deleteLogFile_NameNotIn(String[] fileNameLike) {
-        File directory = new File(logFile.getParent());
-        File[] files = directory.listFiles();
-        List<String> namesToKeep = Arrays.asList(fileNameLike);
-        int count = 0;
-        for (int i = 0; i < files.length; i++) {
-            if (!namesToKeep.contains(getLogFileDate(files[i].getName()))) {
+    fun deleteLogFile_NameNotIn(fileNameLike: Array<String?>) {
+        val directory = File(logFile.parent)
+        val files = directory.listFiles()
+        val namesToKeep = Arrays.asList(*fileNameLike)
+        var count = 0
+        for (i in files.indices) {
+            if (!namesToKeep.contains(getLogFileDate(files[i].name))) {
                 //Log.e("deleteLogFile","deleting "+files[i].getName());
-                files[i].delete();
-                count++;
+                files[i].delete()
+                count++
             }
         }
         //Log.e("deleteLogFile",count+" files deleted");
     }
 
-    public String getLogFileDate(String fileName) {
-        return fileName.replace(LOG_FILE_PREFIX, "").replace(".txt", "");
+    fun getLogFileDate(fileName: String): String {
+        return fileName.replace(LOG_FILE_PREFIX, "").replace(".txt", "")
     }
 
-    public void deleteAllLogFile() {
-        File directory = new File(logFile.getParent());
-        File[] files = directory.listFiles();
+    fun deleteAllLogFile() {
+        val directory = File(logFile.parent)
+        val files = directory.listFiles()
         //Log.e("deleteAllLogFile", "Size: "+ files.length);
-        for (int i = 0; i < files.length; i++) {
+        for (i in files.indices) {
             //Log.e("deleteAllLogFile", "FileName:" + files[i].getName());
-            files[i].delete();
+            files[i].delete()
         }
     }
 
-    public void deleteOldLogs(int pastDaysToKeep) {
-        if (pastDaysToKeep == -1)
-            pastDaysToKeep = PAST_DAYS_LOGS_TO_KEEP;
-
-        Calendar calendar = Calendar.getInstance();
-        Calendar temp = Calendar.getInstance();
-        String[] daysToKeep = new String[pastDaysToKeep];
-        for (int i = 0; i < pastDaysToKeep; i++) {
-            temp.set(Calendar.DAY_OF_MONTH, calendar.get(Calendar.DAY_OF_MONTH) - i);
-            daysToKeep[i] = Utils.getDate(temp.getTimeInMillis(), LOG_FILE_NAME_FORMAT);
+    fun deleteOldLogs(pastDaysToKeep: Int) {
+        var pastDaysToKeep = pastDaysToKeep
+        if (pastDaysToKeep == -1) pastDaysToKeep = PAST_DAYS_LOGS_TO_KEEP
+        val calendar = Calendar.getInstance()
+        val temp = Calendar.getInstance()
+        val daysToKeep = arrayOfNulls<String>(pastDaysToKeep)
+        for (i in 0 until pastDaysToKeep) {
+            temp[Calendar.DAY_OF_MONTH] = calendar[Calendar.DAY_OF_MONTH] - i
+            daysToKeep[i] = getDate(temp.timeInMillis, LOG_FILE_NAME_FORMAT)
         }
-        deleteLogFile_NameNotIn(daysToKeep);
+        deleteLogFile_NameNotIn(daysToKeep)
     }
-    //</editor-fold>
 
-    //<editor-fold desc="Log Write Formatting methods">
-    private String convertToLogTime(long time) {
-        try {
-            dummyDateObj.setTime(time);
-            return logDateTimeFormat.format(dummyDateObj);
-        } catch (Exception ex) {
-            return "";
+    private fun convertToLogTime(time: Long): String {
+        return try {
+            dummyDateObj!!.time = time
+            logDateTimeFormat!!.format(dummyDateObj)
+        } catch (ex: Exception) {
+            ""
         }
     }
 
-    private String formatLogText(String logText, LOG_LEVEL logLevel, String componentName) {
-        return convertToLogTime(System.currentTimeMillis()) + "/" + componentName + "/" + logLevel.name().charAt(0) + " " + logText;
+    private fun formatLogText(logText: String, logLevel: LOG_LEVEL, componentName: String): String {
+        return convertToLogTime(System.currentTimeMillis()) + "/" + componentName + "/" + logLevel.name[0] + " " + logText
     }
 
-    private void writeLogs(File logFile, String logText) {
+    private fun writeLogs(logFile: File?, logText: String?) {
         try {
             if (logFile == null || !logFile.exists() || logText == null || logText.isEmpty()) {
-                return;
+                return
             }
-            synchronized (lock) {
-                BufferedWriter buf = null;
-                FileOutputStream fos = null;
+            synchronized(lock!!) {
+                var buf: BufferedWriter? = null
+                val fos: FileOutputStream? = null
                 if (megabytesAvailable(logFile) > 5) {
                     try {
-                        //BufferedWriter for performance, true to set append to file flag
-                        //try printwriter with newline() //FileChannel filelock
-                        //Log.e("writeLogs",logText);
-                        buf = new BufferedWriter(new FileWriter(logFile, true)); //new BufferedWriter(new OutputStreamWriter(fos));//
-
-                        buf.append(logText);
-                        buf.append("\r\n");
+                        buf = BufferedWriter(
+                            FileWriter(
+                                logFile,
+                                true
+                            )
+                        )
+                        buf.append(logText)
+                        buf.append("\r\n")
                         //buf.newLine();
-                    } catch (Exception e) {
-                        //Log.e("writeLog", "e", e);
+                    } catch (e: Exception) {
+
                     } finally {
-                        buf.flush();
-                        buf.close();
+                        buf!!.flush()
+                        buf.close()
                     }
                 } else {
-                    //TODO write in log that memory is insufficient
+                    // TODO handle low memory
                 }
             }
-            //printLogFileContent();
-        } catch (Exception ex) {
-            //Log.e("writeLogs1","E",ex);
+        } catch (ex: Exception) {
+
         }
-
     }
 
-    public static float megabytesAvailable(File f) {
-        StatFs stat = new StatFs(f.getPath());
-        long bytesAvailable = 0;
-        if (android.os.Build.VERSION.SDK_INT >= 18)
-            bytesAvailable = (long) stat.getBlockSizeLong() * (long) stat.getAvailableBlocksLong();
-        else
-            bytesAvailable = (long) stat.getBlockSize() * (long) stat.getAvailableBlocks();
-        float availableMB = bytesAvailable / (1024.f * 1024.f);
-        //Log.e("availableMB",availableMB+":"+f.getAbsolutePath());
-        return availableMB;
-    }
-    //</editor-fold>
-
-    public void logFWFinish() {
-        /** do all resource clean up here **/
+    fun logFWFinish() {
+        /** do all resource clean up here  */
         //Log.e("LogFWFinish","Called");
-        flush();
+        flush()
         //TODO use handler to wait for 3 seconds before shutting down. If getInstance called again cancel the handler.
-        shutdownHandler.postDelayed(shutdownRunnable, 5000);
+        shutdownHandler!!.postDelayed(shutdownRunnable!!, 5000)
         //logHelper = null;
     }
 
-    public void flush() {
-        if (llPendingLogs.size() > 0)
-            writePendingLogs();
+    fun flush() {
+        if (llPendingLogs!!.size > 0) writePendingLogs()
     }
 
-    public void flushToSP() {
-        StringBuilder sb = new StringBuilder();
-        while (llPendingLogs.size() > 0) {
-            sb.append(llPendingLogs.poll());
-            sb.append("\n");
+    fun flushToSP() {
+        val sb = StringBuilder()
+        while (llPendingLogs!!.size > 0) {
+            sb.append(llPendingLogs!!.poll())
+            sb.append("\n")
         }
-        getLogSharedPref().edit().putString(SHARED_PREF_KEY_PENDING_LOG, sb.toString()).commit();
+        logSharedPref!!.edit().putString(SHARED_PREF_KEY_PENDING_LOG, sb.toString()).commit()
     }
 
-    public void pause() {
-        flush();
-        shutdownHandler.postDelayed(shutdownRunnable, 5000);
+    fun pause() {
+        flush()
+        shutdownHandler!!.postDelayed(shutdownRunnable!!, 5000)
     }
 
-    public void resume() {
+    fun resume() {
         //flushPreviousSessionLogs();
-        if (shutdownHandler != null)
-            shutdownHandler.removeCallbacks(shutdownRunnable);
+        if (shutdownHandler != null) shutdownHandler!!.removeCallbacks(shutdownRunnable!!)
     }
 
-    public String getTempDir(Context context) {
-        return context.getCacheDir() + "/.logtemp";
+    fun getTempDir(context: Context): String {
+        return context.cacheDir.toString() + "/.logtemp"
     }
 
-    public void handleCrash(Context context, Throwable exception, String crashId) {
-        LogHelper.getLogHelper(context).flushToSP();
-        String pendingLogs = LogHelper.getLogHelper(application).getLogSharedPref().getString(LogHelper.SHARED_PREF_KEY_PENDING_LOG, "");
-        LogHelper.getLogHelper(application).getLogSharedPref().edit().putString(
-                LogHelper.SHARED_PREF_KEY_PENDING_LOG, pendingLogs + "crashId->" + crashId + ":\n" +
-                        formatLogText(Log.getStackTraceString(exception),
-                                LOG_LEVEL.CRITICAL, context.getClass().getSimpleName())).commit();
+    fun handleCrash(context: Context, exception: Throwable?, crashId: String) {
+        getLogHelper(context)!!.flushToSP()
+        val pendingLogs = getLogHelper(application)!!.logSharedPref!!.getString(
+            SHARED_PREF_KEY_PENDING_LOG, ""
+        )
+        getLogHelper(application)!!.logSharedPref!!.edit().putString(
+            SHARED_PREF_KEY_PENDING_LOG, "${pendingLogs}crashId->$crashId:".trimIndent() +
+                    formatLogText(
+                        Log.getStackTraceString(exception),
+                        LOG_LEVEL.CRITICAL, context.javaClass.simpleName
+                    )
+        ).commit()
+    }
+
+    companion object {
+        const val LOG_FILE_NAME_FORMAT = "dd_MM_yyyy" //-HH_mm_ss
+        const val LOG_INFO_PREFIX_DATE_FORMAT = "HH:mm:ss" //dd MM yyyy
+        const val LOG_FILE_PREFIX = "SmartLauncherLog_"
+        const val SHARED_PREF_KEY_PENDING_LOG = "pending_logs"
+        private var logHelper: LogHelper? = null
+        fun getLogHelper(context: Context): LogHelper? {
+            if (logHelper == null) {
+                Log.e("test-logHelper", "constructor called")
+                logHelper = LogHelper(context)
+            }
+            return logHelper
+        }
+
+        fun megabytesAvailable(f: File): Float {
+            val stat = StatFs(f.path)
+            var bytesAvailable: Long = 0
+            bytesAvailable = stat.blockSizeLong * stat.availableBlocksLong
+            return bytesAvailable / (1024f * 1024f)
+        }
+    }
+
+    init {
+        logFile = File(
+            getAppLogFolderInternal(
+                context
+            ), LOG_FILE_PREFIX +
+                    getDate(System.currentTimeMillis(), LOG_FILE_NAME_FORMAT) + ".txt"
+        )
+        Log.d("test-LogHelper", logFile.absolutePath)
+        if (!logFile.exists()) {
+            try {
+                logFile.createNewFile()
+                deleteOldLogs(PAST_DAYS_LOGS_TO_KEEP)
+            } catch (e: IOException) {
+                //e.printStackTrace();
+            }
+        }
+        init()
     }
 }
-

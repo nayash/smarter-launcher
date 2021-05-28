@@ -12,6 +12,7 @@ package com.outliers.smartlauncher.main.ui
 
 import android.Manifest
 import android.app.role.RoleManager
+import android.appwidget.AppWidgetManager
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -200,6 +201,11 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
                 when (it.itemId) {
                     R.id.menu_log_files -> startLogFilesActivity()
                     R.id.menu_data_files -> startDataFilesActivity()
+                    R.id.menu_widget -> {
+                        val pickIntent = Intent(AppWidgetManager.ACTION_APPWIDGET_CONFIGURE)
+                        //pickIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetID)
+                        startActivityForResult(pickIntent, 1)
+                    }
                 }
                 return@setOnMenuItemClickListener true
             }
@@ -229,9 +235,6 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         val crashRestart: Boolean =
             viewModel.smartLauncherRoot?.launcherPref?.getBoolean("crash_restart", false) == true
         if (crashRestart || FirebaseCrashlytics.getInstance().didCrashOnPreviousExecution()) {
-            /*val intent = Intent(this, CrashHandlerActivity::class.java)
-            intent.putExtra("crash_id", mSharedPreferences.getString("crash_id", ""))
-            startActivity(intent)*/
             viewModel.smartLauncherRoot?.launcherPref?.edit()?.putBoolean("crash_restart", false)
                 ?.apply()
             // mSharedPreferences.edit().putString("crash_id", "").apply()

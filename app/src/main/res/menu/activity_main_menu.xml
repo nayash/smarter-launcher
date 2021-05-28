@@ -16,4 +16,7 @@
     <item
         android:id="@+id/menu_data_files"
         android:title="@string/show_data_files" />
+    <item
+        android:id="@+id/menu_widget"
+        android:title="widgets"/>
 </menu>

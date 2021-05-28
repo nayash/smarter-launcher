@@ -139,7 +139,7 @@ class BackupActivity : AppCompatActivity(), FilesRVAdapter.FilesRVAdapterParent 
                 Toast.makeText(this, "Done", Toast.LENGTH_SHORT).show()
             } catch (ex: IOException) {
                 LogHelper.getLogHelper(this)
-                    .addLogToQueue(
+                    ?.addLogToQueue(
                         "test-backupException--${Log.getStackTraceString(ex)}",
                         LogHelper.LOG_LEVEL.ERROR,
                         this

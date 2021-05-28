@@ -56,7 +56,7 @@ class LogsActivity : AppCompatActivity(), FilesRVAdapterParent {
     }
 
     private fun shareLog(path: String) {
-        LogHelper.getLogHelper(this).flush() // flush any queued logs before sharing logs
+        LogHelper.getLogHelper(this)?.flush() // flush any queued logs before sharing logs
         val intent = Intent(Intent.ACTION_SEND)
         intent.type = "text/plain"
         intent.putExtra(Intent.EXTRA_EMAIL, arrayOf("outliers91@gmail.com"))
@@ -80,7 +80,7 @@ class LogsActivity : AppCompatActivity(), FilesRVAdapterParent {
     }
 
     private fun shareLogs() {
-        LogHelper.getLogHelper(this).flush() // flush any queued logs before sharing logs
+        LogHelper.getLogHelper(this)?.flush() // flush any queued logs before sharing logs
         val intent = Intent(Intent.ACTION_SEND)
         intent.type = "text/plain"
         intent.putExtra(Intent.EXTRA_EMAIL, arrayOf("outliers91@gmail.com"))
