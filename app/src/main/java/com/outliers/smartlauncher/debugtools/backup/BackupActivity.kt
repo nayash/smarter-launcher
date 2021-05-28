@@ -149,35 +149,6 @@ class BackupActivity : AppCompatActivity(), FilesRVAdapter.FilesRVAdapterParent 
                     .show()
             }
         }
-        /*CoroutineScope(Dispatchers.IO).launch {
-            val data = Utils.readFromFileAsString(this@BackupActivity, path)
-            Log.d("createFile", "test-download path= $backupPath")
-            if (data != null && backupPath != null) {
-                val backupDir = File(backupPath, getString(R.string.app_name))
-                if(!backupDir.exists())
-                    backupDir.mkdir()
-                Log.d("createFile", "test- backupDir path = ${backupDir.absolutePath}")
-                val temp = Utils.getFileNameFromPath(path)
-                val writePath =
-                    backupDir.absolutePath + File.separator + temp
-                Log.d("createFile", "test-writePath = $writePath")
-                val res = Utils.writeToFile(
-                    this@BackupActivity, writePath, data
-                )
-                runOnUiThread {
-                    if (res)
-                        Toast.makeText(
-                            this@BackupActivity,
-                            "File copied to $backupPath", Toast.LENGTH_SHORT
-                        ).show()
-                    else
-                        Toast.makeText(
-                            this@BackupActivity,
-                            "File copy failed", Toast.LENGTH_SHORT
-                        ).show()
-                }
-
-            }*/
     }
 
     private fun checkExternalWritePermission(): Boolean {
