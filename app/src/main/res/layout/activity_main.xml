@@ -1,17 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~  Copyright (c) 2021. Asutosh Nayak (nayak.asutosh@ymail.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  -->
+
 <layout xmlns:app="http://schemas.android.com/apk/res-auto">
-    <androidx.coordinatorlayout.widget.CoordinatorLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
+
+    <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <androidx.constraintlayout.widget.ConstraintLayout
-            xmlns:android="http://schemas.android.com/apk/res/android"
+        <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
             xmlns:tools="http://schemas.android.com/tools"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            tools:context=".ui.MainActivity">
+            tools:context=".main.ui.MainActivity">
 
             <!-- layout to show predicted apps -->
             <TableLayout
@@ -20,14 +29,14 @@
                 android:layout_height="wrap_content"
                 app:layout_constraintBottom_toBottomOf="parent"
                 android:layout_marginBottom="50dp"
-                android:visibility="gone"/>
+                android:visibility="gone" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rv_suggestions"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:layout_constraintBottom_toBottomOf="parent"
-                android:layout_marginBottom="50dp"/>
+                android:layout_marginBottom="50dp" />
 
             <!--<androidx.constraintlayout.widget.Guideline
                 android:id="@+id/guideline_bottom"
@@ -38,8 +47,9 @@
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <include android:id="@+id/app_list_sheet"
-            layout="@layout/app_list_sheet"/>
+        <include
+            android:id="@+id/app_list_sheet"
+            layout="@layout/app_list_sheet" />
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 </layout>

@@ -1,3 +1,13 @@
+/*
+ *  Copyright (c) 2021. Asutosh Nayak (nayak.asutosh@ymail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ */
+
 package com.outliers.smartlauncher.utils
 
 import android.app.Activity
@@ -13,9 +23,6 @@ import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.BatteryManager
 import android.os.Build
-import android.os.Environment
-import android.provider.DocumentsContract
-import android.provider.MediaStore
 import android.provider.Settings
 import android.text.TextUtils
 import android.util.DisplayMetrics
@@ -35,7 +42,6 @@ import kotlinx.coroutines.withContext
 import org.apache.commons.math3.linear.RealVector
 import org.json.JSONObject
 import java.io.*
-import java.lang.StringBuilder
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -252,9 +258,9 @@ object Utils {
         return px / (Resources.getSystem().displayMetrics.densityDpi.toFloat() / DisplayMetrics.DENSITY_DEFAULT)
     }
 
-    fun getAppByPackage(appsList: ArrayList<AppModel>, packageName: String): AppModel?{
-        for(appModel in appsList) {
-            if(appModel.packageName.equals(packageName, true))
+    fun getAppByPackage(appsList: ArrayList<AppModel>, packageName: String): AppModel? {
+        for (appModel in appsList) {
+            if (appModel.packageName.equals(packageName, true))
                 return appModel
         }
         return null
@@ -320,11 +326,12 @@ object Utils {
         return device
     }
 
-    suspend fun writeToFile(context: Context, path: String, objectToWrite: Any): Boolean{
+    suspend fun writeToFile(context: Context, path: String, objectToWrite: Any): Boolean {
         try {
             Log.v("writeToFile", "obj = $objectToWrite")
             withContext(Dispatchers.IO) {
-                val serializedObj = Gson().toJson(objectToWrite)  // TODO handle concurrent modification exception
+                val serializedObj =
+                    Gson().toJson(objectToWrite)  // TODO handle concurrent modification exception
                 val fos: FileOutputStream = FileOutputStream(path)
                 val os = ObjectOutputStream(fos)
                 os.writeObject(serializedObj)
@@ -332,7 +339,7 @@ object Utils {
                 fos.close()
             }
             return true
-        }catch (ex: Exception){
+        } catch (ex: Exception) {
             LogHelper.getLogHelper(context).addLogToQueue(
                 "writeToFileException:" +
                         "${Log.getStackTraceString(ex)}", LogHelper.LOG_LEVEL.ERROR, context
@@ -341,14 +348,14 @@ object Utils {
         }
     }
 
-    suspend inline fun <reified T> readFromFile(context: Context, fileName: String): T?{
+    suspend inline fun <reified T> readFromFile(context: Context, fileName: String): T? {
         var obj: T? = null
         try {
             withContext(Dispatchers.IO) {
                 val temp = readFromFileAsString(context, fileName)
                 obj = Gson().fromJson(temp, T::class.java)
             }
-        }catch (ex: Exception){
+        } catch (ex: Exception) {
             LogHelper.getLogHelper(context).addLogToQueue(
                 "readFromFileException1:" +
                         "${Log.getStackTraceString(ex)}\nobj=${obj.toString()}",
@@ -373,7 +380,7 @@ object Utils {
                 }
                 br.close()
             }
-        }catch (ex: Exception){
+        } catch (ex: Exception) {
             LogHelper.getLogHelper(context).addLogToQueue(
                 "readFromFileException2:" +
                         "${Log.getStackTraceString(ex)}\nobj=${sb.toString()}",
@@ -397,7 +404,7 @@ object Utils {
                 }
                 br.close()
             }
-        }catch (ex: Exception){
+        } catch (ex: Exception) {
             LogHelper.getLogHelper(context).addLogToQueue(
                 "readFromFileException2:" +
                         "${Log.getStackTraceString(ex)}\nobj=${sb.toString()}",
@@ -427,8 +434,8 @@ object Utils {
     }
 
     @JvmStatic
-    fun bytesToKB(bytes: Long): Long{
-        return bytes/1024
+    fun bytesToKB(bytes: Long): Long {
+        return bytes / 1024
     }
 
     fun getFileNameFromPath(path: String): String {

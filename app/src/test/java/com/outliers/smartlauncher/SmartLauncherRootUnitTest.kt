@@ -1,28 +1,32 @@
+/*
+ *  Copyright (c) 2021. Asutosh Nayak (nayak.asutosh@ymail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ */
+
 package com.outliers.smartlauncher
 
 import android.content.Context
-import android.os.Looper
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.collection.ArrayMap
 import androidx.test.core.app.ApplicationProvider
 import com.outliers.smartlauncher.core.SmartLauncherRoot
 import com.outliers.smartlauncher.models.AppModel
-import kotlinx.coroutines.*
-import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito
-import org.mockito.junit.MockitoJUnitRunner
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.LooperMode
 import kotlin.random.Random
-import kotlin.system.measureTimeMillis
-import org.junit.Assert.*
-import org.mockito.Spy
 
 @RunWith(RobolectricTestRunner::class)
 //@RunWith(MockitoJUnitRunner::class)
@@ -32,6 +36,7 @@ class SmartLauncherRootUnitTest {
 
     @get:Rule
     val instantTestExecutorRule = InstantTaskExecutorRule()
+
     @get:Rule
     var coroutinesTestRule = CoroutineTestRule()
     var slRoot: SmartLauncherRoot? = null
@@ -41,8 +46,11 @@ class SmartLauncherRootUnitTest {
     lateinit var random: Random
 
     @Before
-    fun init(){
-        slRoot = SmartLauncherRoot.getInstance(context, coroutinesTestRule.testDispatcher)  // coroutinesTestRule.testDispatcher
+    fun init() {
+        slRoot = SmartLauncherRoot.getInstance(
+            context,
+            coroutinesTestRule.testDispatcher
+        )  // coroutinesTestRule.testDispatcher
         slRoot?.let {
             it.appModels.clear()
             it.launchHistoryList.clear()
@@ -56,15 +64,15 @@ class SmartLauncherRootUnitTest {
     }
 
     @Test
-    fun allInstalledAppsNonEmpty(){
+    fun allInstalledAppsNonEmpty() {
         println("test = allInstalledAppsNonEmpty")
         assert(slRoot!!.allInstalledApps.size > 0)
     }
 
     @Test
-    fun appLaunchSeqLenAlways3(){
+    fun appLaunchSeqLenAlways3() {
         println("test = appLaunchSeqLenAlways3")
-        for(i in 0 until 5){
+        for (i in 0 until 5) {
             slRoot!!.appLaunched(slRoot!!.allInstalledApps[random.nextInt(0, APP_SIZE)].packageName)
             Thread.sleep(200)
         }
@@ -74,9 +82,9 @@ class SmartLauncherRootUnitTest {
     }
 
     @Test
-    fun appLaunchSeqContent(){  // same function doesn't work with Testdispatcher!!
+    fun appLaunchSeqContent() {  // same function doesn't work with Testdispatcher!!
         println("test = appLaunchSeqContent")
-        for(i in 0 until 5){
+        for (i in 0 until 5) {
             slRoot!!.appLaunched(slRoot!!.allInstalledApps[i].packageName)
             Thread.sleep(200)
         }
@@ -85,11 +93,11 @@ class SmartLauncherRootUnitTest {
         //coroutinesTestRule.testDispatcher.runCurrent()
         assert(slRoot!!.launchSequence[0].endsWith("2"))
         val size = slRoot!!.launchSequence.size
-        assert(slRoot!!.launchSequence[size-1].endsWith("4"))
+        assert(slRoot!!.launchSequence[size - 1].endsWith("4"))
     }
 
     @Test
-    fun appToIdxTest(){
+    fun appToIdxTest() {
         println("test = appToIdxTest")
         val appToIdxMap = slRoot!!.appToIdxMap
         println(appToIdxMap)
@@ -97,9 +105,9 @@ class SmartLauncherRootUnitTest {
     }
 
     @Test
-    fun launchHistSizeTest(){
+    fun launchHistSizeTest() {
         println("test = launchHistSize")
-        for(i in 0 until 10){
+        for (i in 0 until 10) {
             slRoot!!.appLaunched(slRoot!!.allInstalledApps[random.nextInt(0, APP_SIZE)].packageName)
             Thread.sleep(100)
         }
@@ -108,9 +116,9 @@ class SmartLauncherRootUnitTest {
     }
 
     @Test
-    fun findKNNSizeTest(){
+    fun findKNNSizeTest() {
         println("test = findKNNSize")
-        for(i in 0 until 10){
+        for (i in 0 until 10) {
             slRoot!!.appLaunched(slRoot!!.allInstalledApps[random.nextInt(0, APP_SIZE)].packageName)
             Thread.sleep(100)
         }
@@ -119,10 +127,10 @@ class SmartLauncherRootUnitTest {
     }
 
     @Test
-    fun launchVecAtfTest(){
+    fun launchVecAtfTest() {
         println("test = launchVecAtfTest")
         val appIdxs = arrayOf(10, 2, 25)
-        for(i in appIdxs.indices){ // mimic launch of 3 apps with indices as above
+        for (i in appIdxs.indices) { // mimic launch of 3 apps with indices as above
             slRoot!!.appLaunched(slRoot!!.allInstalledApps[appIdxs[i]].packageName)
             Thread.sleep(100)
         }
@@ -130,19 +138,22 @@ class SmartLauncherRootUnitTest {
         // mimic launch of any random app
         slRoot!!.appLaunched(slRoot!!.allInstalledApps[random.nextInt(0, APP_SIZE)].packageName)
         val launchVec = slRoot?.launchHistoryList?.last()?.value
-        val atfVec = launchVec?.getSubVector(SmartLauncherRoot.EXPLICIT_FEATURES_COUNT, slRoot!!.allInstalledApps.size)
+        val atfVec = launchVec?.getSubVector(
+            SmartLauncherRoot.EXPLICIT_FEATURES_COUNT,
+            slRoot!!.allInstalledApps.size
+        )
         val decay = SmartLauncherRoot.APP_USAGE_DECAY_RATE
         val decayVals = ArrayMap<Int, Double>()
-        for((i, idx) in appIdxs.reversed().withIndex()){
+        for ((i, idx) in appIdxs.reversed().withIndex()) {
             decayVals.put(idx, Math.pow(decay, i.toDouble()))
         }
         assertNotNull(atfVec)
         if (atfVec != null) {
             var counter = 0
-            for(double in atfVec){
-                if(counter in appIdxs){
+            for (double in atfVec) {
+                if (counter in appIdxs) {
                     assertEquals(atfVec.getEntry(counter), decayVals.get(counter))
-                }else{
+                } else {
                     assertEquals(atfVec.getEntry(counter), 0.0, 0.0)
                 }
                 counter++
@@ -151,7 +162,7 @@ class SmartLauncherRootUnitTest {
     }
 
     @Test
-    fun appInstallTest(){
+    fun appInstallTest() {
         /**
          * Check if
          * 1. launchHistory dim increased
@@ -159,7 +170,7 @@ class SmartLauncherRootUnitTest {
          * 3. 0.0 is inserted to correct idx in history vecs
          */
 
-        for(i in 0 until 3){ // mimic launch of 3 random apps
+        for (i in 0 until 3) { // mimic launch of 3 random apps
             slRoot!!.appLaunched(slRoot!!.allInstalledApps[random.nextInt(0, APP_SIZE)].packageName)
             Thread.sleep(100)
         }
@@ -169,14 +180,14 @@ class SmartLauncherRootUnitTest {
         newApp.appName = "AppNum44"
         slRoot!!.refreshAppList(1, newApp.packageName)
         slRoot!!.appLaunched(slRoot!!.allInstalledApps[random.nextInt(0, APP_SIZE)].packageName)
-        assertEquals(oldDim+1, slRoot!!.launchHistoryList.last().value.dimension)
+        assertEquals(oldDim + 1, slRoot!!.launchHistoryList.last().value.dimension)
 
         // fails because appModels in cleared and refetched internally in the "refresh" function
         // which is actually EmptyList. Try Spy of SLRoot
     }
 
     @Test
-    fun appUninstallTest(){
+    fun appUninstallTest() {
         /**
          * Check if
          * 1. launchHistory dim reduced
@@ -186,22 +197,22 @@ class SmartLauncherRootUnitTest {
     }
 
     @Test
-    fun saveStateTest(){
+    fun saveStateTest() {
 
     }
 
     @Test
-    fun loadStateTest(){
+    fun loadStateTest() {
 
     }
 
     @Test
-    fun cleanUpHistoryTest(){
+    fun cleanUpHistoryTest() {
 
     }
 
     @After
-    fun finish(){
+    fun finish() {
         println("test teardown")
     }
 }

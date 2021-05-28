@@ -1,3 +1,13 @@
+/*
+ *  Copyright (c) 2021. Asutosh Nayak (nayak.asutosh@ymail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ */
+
 package com.outliers.smartlauncher.debugtools.loghelper
 
 import android.content.Context
@@ -45,7 +55,7 @@ class LogsActivity : AppCompatActivity(), FilesRVAdapterParent {
         path?.let { shareLog(it) }
     }
 
-    private fun shareLog(path: String){
+    private fun shareLog(path: String) {
         LogHelper.getLogHelper(this).flush() // flush any queued logs before sharing logs
         val intent = Intent(Intent.ACTION_SEND)
         intent.type = "text/plain"
@@ -56,7 +66,8 @@ class LogsActivity : AppCompatActivity(), FilesRVAdapterParent {
         val uri: Uri = FileProvider.getUriForFile(
             applicationContext,
             getString(R.string.sl_file_provider),
-            file)
+            file
+        )
         intent.putExtra(Intent.EXTRA_STREAM, uri)
         intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK

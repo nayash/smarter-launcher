@@ -1,4 +1,14 @@
-package com.outliers.smartlauncher.ui
+/*
+ *  Copyright (c) 2021. Asutosh Nayak (nayak.asutosh@ymail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ */
+
+package com.outliers.smartlauncher.main.ui
 
 import android.Manifest
 import android.app.role.RoleManager
@@ -25,7 +35,6 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
 import androidx.core.content.res.ResourcesCompat
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.GridLayoutManager
@@ -37,19 +46,17 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.outliers.smartlauncher.BuildConfig
 import com.outliers.smartlauncher.R
-import com.outliers.smartlauncher.core.MainViewModel
-import com.outliers.smartlauncher.core.MainViewModelFactory
-import com.outliers.smartlauncher.core.RVItemDecoration
 import com.outliers.smartlauncher.core.SmartLauncherApplication
 import com.outliers.smartlauncher.databinding.ActivityMainBinding
 import com.outliers.smartlauncher.debugtools.backup.BackupActivity
-import com.outliers.smartlauncher.models.AppModel
-import com.outliers.smartlauncher.debugtools.loghelper.LogHelper
 import com.outliers.smartlauncher.debugtools.loghelper.LogsActivity
+import com.outliers.smartlauncher.main.adapter.AppsRVAdapter
+import com.outliers.smartlauncher.main.adapter.RVItemDecoration
+import com.outliers.smartlauncher.main.viewmodel.MainViewModel
+import com.outliers.smartlauncher.main.viewmodel.MainViewModelFactory
+import com.outliers.smartlauncher.models.AppModel
 import com.outliers.smartlauncher.utils.Utils
-import java.io.File
 import java.util.*
-import kotlin.collections.ArrayList
 
 
 class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnClickListener,
@@ -178,9 +185,15 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         }, 1000)
 
         binding.root.setOnLongClickListener {
-            val popupMenu = PopupMenu(this, it, Gravity.NO_GRAVITY, R.attr.actionOverflowMenuStyle, 0) //PopupMenu(this, it)
+            val popupMenu = PopupMenu(
+                this,
+                it,
+                Gravity.NO_GRAVITY,
+                R.attr.actionOverflowMenuStyle,
+                0
+            ) //PopupMenu(this, it)
             popupMenu.menuInflater.inflate(R.menu.activity_main_menu, popupMenu.menu)
-            if(!BuildConfig.DEBUG){
+            if (!BuildConfig.DEBUG) {
                 popupMenu.menu.findItem(R.id.menu_log_files).isVisible = false
             }
             popupMenu.setOnMenuItemClickListener {
@@ -479,7 +492,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         startActivity(intent)
     }
 
-    fun startDataFilesActivity(){
+    fun startDataFilesActivity() {
         val intent = Intent(this, BackupActivity::class.java)
         startActivity(intent)
     }

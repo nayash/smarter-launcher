@@ -1,3 +1,13 @@
+/*
+ *  Copyright (c) 2021. Asutosh Nayak (nayak.asutosh@ymail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ */
+
 package com.outliers.smartlauncher
 
 import com.outliers.smartlauncher.core.Tuple
@@ -10,32 +20,42 @@ class TupleTest {
     lateinit var tuple: Tuple<String, ArrayRealVector>
 
     @Before
-    fun before(){
+    fun before() {
         val arrayRealVector = ArrayRealVector(20)
         tuple = Tuple("com.test.package", arrayRealVector)
     }
 
     @Test
-    fun getKeyTest(){
+    fun getKeyTest() {
         assert(tuple.key == "com.test.package")
     }
 
     @Test
-    fun getValueTest(){
+    fun getValueTest() {
         assert(tuple.value == ArrayRealVector(20))
         tuple.value.setEntry(17, 1.2)
         assert(tuple.value.getEntry(17) == 1.2)
     }
 
     @Test
-    fun getValueSubArrayTest(){
+    fun getValueSubArrayTest() {
         tuple.value.setSubVector(5, doubleArrayOf(1.2, 0.0, 1.3, 2.5, 1.7))
-        assert(tuple.value.getSubVector(5, 5) == ArrayRealVector(doubleArrayOf(1.2, 0.0, 1.3, 2.5, 1.7)))
+        assert(
+            tuple.value.getSubVector(5, 5) == ArrayRealVector(
+                doubleArrayOf(
+                    1.2,
+                    0.0,
+                    1.3,
+                    2.5,
+                    1.7
+                )
+            )
+        )
         assert(tuple.value.getEntry(9) == 1.7)
     }
 
     @Test
-    fun equalsNegTest(){
+    fun equalsNegTest() {
         var other = Tuple("com.test.package1", ArrayRealVector(20))
         other.value.setEntry(10, 1.5)
         assert(!tuple.equals(other))
@@ -48,7 +68,7 @@ class TupleTest {
     }
 
     @Test
-    fun equalsPosTest(){
+    fun equalsPosTest() {
         var other = Tuple("com.test.package", ArrayRealVector(20))
         assert(tuple.equals(other))
         assert(tuple == other)
@@ -61,7 +81,7 @@ class TupleTest {
     }
 
     @Test
-    fun equalsDiffKeyTest(){
+    fun equalsDiffKeyTest() {
         val vec = ArrayRealVector(20)
         vec.setEntry(17, 1.2)
         val other = Tuple("com.test.package1", vec)
@@ -69,7 +89,7 @@ class TupleTest {
     }
 
     @Test
-    fun equalsDiffValueTest(){
+    fun equalsDiffValueTest() {
         val vec = ArrayRealVector(20)
         val other = Tuple("com.test.package1", vec)
         assert(!tuple.equals(other))

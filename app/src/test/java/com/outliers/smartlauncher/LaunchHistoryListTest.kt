@@ -1,13 +1,21 @@
+/*
+ *  Copyright (c) 2021. Asutosh Nayak (nayak.asutosh@ymail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ */
+
 package com.outliers.smartlauncher
 
-import android.util.Log
 import com.google.gson.Gson
 import com.outliers.smartlauncher.core.LaunchHistoryList
 import com.outliers.smartlauncher.core.Tuple
 import org.apache.commons.math3.linear.ArrayRealVector
 import org.junit.Before
 import org.junit.Test
-import java.lang.IndexOutOfBoundsException
 
 class LaunchHistoryListTest {
 
@@ -17,23 +25,23 @@ class LaunchHistoryListTest {
     val vecSize = 20
 
     @Before
-    fun init(){
-        for(i in 0 until size){
+    fun init() {
+        for (i in 0 until size) {
             launchHistoryList.add(i.toString(), ArrayRealVector(vecSize))
         }
 
         launchHistoryList2 = LaunchHistoryList<String, ArrayRealVector>()
-        for(i in 0 until 10){
+        for (i in 0 until 10) {
             val vec = ArrayRealVector(5)
-            for(j in 0 until vec.dimension){
-                vec.setEntry(j, (i+j).toDouble())
+            for (j in 0 until vec.dimension) {
+                vec.setEntry(j, (i + j).toDouble())
             }
             launchHistoryList2.add(i.toString(), vec)
         }
     }
 
     @Test
-    fun dataCheck(){
+    fun dataCheck() {
         assert(launchHistoryList.size == size)
         launchHistoryList.getValueAt(0)?.setEntry(2, 2.0)
         assert(launchHistoryList.getValueAt(0)?.getEntry(2) == 2.0)
@@ -41,35 +49,35 @@ class LaunchHistoryListTest {
     }
 
     @Test
-    fun removeAtTest(){
+    fun removeAtTest() {
         launchHistoryList.removeAt(4)
-        assert(launchHistoryList.size == size-1)
+        assert(launchHistoryList.size == size - 1)
         assert(launchHistoryList[4].key == "5")
     }
 
     @Test(expected = IndexOutOfBoundsException::class)
-    fun removeAtIOBTest(){
-        launchHistoryList.removeAt(size+1)
+    fun removeAtIOBTest() {
+        launchHistoryList.removeAt(size + 1)
     }
 
     @Test
-    fun removeEntriesWithKeyTest(){
+    fun removeEntriesWithKeyTest() {
         val testList = LaunchHistoryList<String, ArrayRealVector>()
         val keys = arrayListOf("a", "b", "c", "a", "b", "d", "e")
-        for(key in keys){
+        for (key in keys) {
             testList.add(key, ArrayRealVector(10))
         }
 
         val keyToDelete = "a"
         testList.removeEntriesWithKey(keyToDelete)
-        for(tuple in testList){
+        for (tuple in testList) {
             assert(tuple.key != keyToDelete)
         }
         assert(testList.size == 5)
     }
 
     @Test
-    fun getValueAt(){
+    fun getValueAt() {
         val testList = launchHistoryList2
 
         assert(testList.getValueAt(1) == ArrayRealVector(doubleArrayOf(1.0, 2.0, 3.0, 4.0, 5.0)))
@@ -77,7 +85,7 @@ class LaunchHistoryListTest {
     }
 
     @Test
-    fun updateValueAtTest(){
+    fun updateValueAtTest() {
         val old = launchHistoryList[3].value
         val new = ArrayRealVector(doubleArrayOf(1.0, 2.0, 3.0, 4.0, 5.0))
         launchHistoryList[3].value = new
@@ -86,7 +94,7 @@ class LaunchHistoryListTest {
     }
 
     @Test
-    fun clearTest(){
+    fun clearTest() {
         // include isEmpty
         val testList = launchHistoryList2
 
@@ -97,56 +105,56 @@ class LaunchHistoryListTest {
     }
 
     @Test
-    fun containsTest(){
+    fun containsTest() {
         assert(launchHistoryList.contains(Tuple("1", ArrayRealVector(20))))
         assert(!launchHistoryList.contains(Tuple("11", ArrayRealVector(20))))
     }
 
     @Test
-    fun containsKeyTest(){
+    fun containsKeyTest() {
         assert(launchHistoryList.containsKey("1"))
         assert(!launchHistoryList.containsKey("11"))
     }
 
     @Test
-    fun iteratorBasicTest(){
+    fun iteratorBasicTest() {
         // include remove while iterating
-        for((i, tuple) in launchHistoryList2.withIndex()){
+        for ((i, tuple) in launchHistoryList2.withIndex()) {
             assert(tuple.key.equals(i.toString()))
             assert(tuple.value.getEntry(0) == i.toDouble())
-            assert(tuple.value.getEntry(4) == i.toDouble()+4)
+            assert(tuple.value.getEntry(4) == i.toDouble() + 4)
         }
 
         val iterator = launchHistoryList2.iterator()
         var i = 0
-        while(iterator.hasNext()){
+        while (iterator.hasNext()) {
             val tuple = iterator.next()
             assert(tuple.key.equals(i.toString()))
             assert(tuple.value.getEntry(0) == i.toDouble())
-            assert(tuple.value.getEntry(4) == i.toDouble()+4)
+            assert(tuple.value.getEntry(4) == i.toDouble() + 4)
             i++
         }
     }
 
     @Test
-    fun iteratorRemoveTest(){
+    fun iteratorRemoveTest() {
         val oldSize = launchHistoryList2.size
         val iterator = launchHistoryList2.iterator()
         var i = 0
-        while(iterator.hasNext()){
+        while (iterator.hasNext()) {
             val tuple = iterator.next()
-            if(tuple.key == "4"){
+            if (tuple.key == "4") {
                 iterator.remove()
             }
             i++
         }
-        assert(launchHistoryList2.size == oldSize-1)
+        assert(launchHistoryList2.size == oldSize - 1)
         assert(!launchHistoryList2.containsKey("4"))
         assert(launchHistoryList2[4].key == "5")
     }
 
     @Test
-    fun formatTest(){
+    fun formatTest() {
         val tuple = Tuple("a", ArrayRealVector(5))
         val tempList = LaunchHistoryList<String, ArrayRealVector>()
         tempList.add(tuple.key, tuple.value)

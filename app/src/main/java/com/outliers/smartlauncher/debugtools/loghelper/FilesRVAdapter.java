@@ -1,3 +1,13 @@
+/*
+ *  Copyright (c) 2021. Asutosh Nayak (nayak.asutosh@ymail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ */
+
 package com.outliers.smartlauncher.debugtools.loghelper;
 
 import android.content.Context;
@@ -14,12 +24,13 @@ import com.outliers.smartlauncher.R;
 import com.outliers.smartlauncher.utils.Utils;
 
 import java.io.File;
-import java.util.ArrayList;
 
 public class FilesRVAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
-    interface FilesRVAdapterParent{
+    interface FilesRVAdapterParent {
         void itemClicked(int position, String path);
+
         void share(int position, String path);
+
         Context getContext();
     }
 
@@ -27,16 +38,17 @@ public class FilesRVAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     Context context;
     FilesRVAdapterParent parent;
 
-    public FilesRVAdapter(String[] paths, FilesRVAdapterParent parent){
+    public FilesRVAdapter(String[] paths, FilesRVAdapterParent parent) {
         this.context = parent.getContext();
         this.paths = paths;
         this.parent = parent;
     }
 
-    class MainViewHolder extends RecyclerView.ViewHolder{
+    class MainViewHolder extends RecyclerView.ViewHolder {
         TextView tvFileName;
         ImageView ivShare;
         TextView tvSize;
+
         public MainViewHolder(@NonNull View itemView) {
             super(itemView);
             tvFileName = itemView.findViewById(R.id.tv_file_name);
@@ -62,7 +74,7 @@ public class FilesRVAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         MainViewHolder mvh = (MainViewHolder) holder;
         File file = new File(paths[position]);
         mvh.tvFileName.setText(file.getName());
-        mvh.tvSize.setText(Utils.bytesToKB(file.length())+" KB");
+        mvh.tvSize.setText(Utils.bytesToKB(file.length()) + " KB");
     }
 
     @Override

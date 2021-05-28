@@ -1,3 +1,13 @@
+/*
+ *  Copyright (c) 2021. Asutosh Nayak (nayak.asutosh@ymail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ */
+
 package com.outliers.smartlauncher.core
 
 import android.Manifest
@@ -17,11 +27,10 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.outliers.smartlauncher.consts.Constants
+import com.outliers.smartlauncher.debugtools.loghelper.LogHelper
 import com.outliers.smartlauncher.models.AppModel
 import com.outliers.smartlauncher.models.AppModel.CREATOR.getAppModelsFromPackageInfoList
-import com.outliers.smartlauncher.debugtools.loghelper.LogHelper
 import com.outliers.smartlauncher.utils.Utils
 import com.outliers.smartlauncher.utils.Utils.isValidString
 import kotlinx.coroutines.*
@@ -31,21 +40,25 @@ import org.apache.commons.math3.linear.ArrayRealVector
 import org.json.JSONArray
 import org.json.JSONException
 import java.io.File
-import java.lang.Exception
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.math.pow
 
-class SmartLauncherRoot private constructor(val context: Context,
-                                            val dispatcher: CoroutineDispatcher = Dispatchers.IO) {
+class SmartLauncherRoot private constructor(
+    val context: Context,
+    val dispatcher: CoroutineDispatcher = Dispatchers.IO
+) {
 
-    val appModels: MutableList<AppModel> = Collections.synchronizedList(mutableListOf<AppModel>())  // TODO consider using CopyOnWriteArrayList !!
+    val appModels: MutableList<AppModel> =
+        Collections.synchronizedList(mutableListOf<AppModel>())  // TODO consider using CopyOnWriteArrayList !!
     val liveAppModels: MutableLiveData<MutableList<AppModel>> = MutableLiveData()
-    val appToIdMap: ArrayMap<String, Int> = ArrayMap()  // package to hashcode map -- TODO no real use; consider removing
+    val appToIdMap: ArrayMap<String, Int> =
+        ArrayMap()  // package to hashcode map -- TODO no real use; consider removing
     val appToIdxMap: ArrayMap<String, Int> =
         ArrayMap()  // package to index map for ATF construction
-    val idToApp: ArrayMap<Int, String> = ArrayMap()  // reverse Map of appToIdMap -- TODO no real use; consider removing
+    val idToApp: ArrayMap<Int, String> =
+        ArrayMap()  // reverse Map of appToIdMap -- TODO no real use; consider removing
     var launchSequence: MutableList<String> =
         Collections.synchronizedList(mutableListOf<String>())  // sequence of last 'window size' package names
 
@@ -63,8 +76,10 @@ class SmartLauncherRoot private constructor(val context: Context,
         private var outliersLauncherRoot: SmartLauncherRoot? =
             null  // TODO warning--context in static field; memory leak.
 
-        fun getInstance(context: Context,
-                        dispatcher: CoroutineDispatcher=Dispatchers.IO): SmartLauncherRoot? {
+        fun getInstance(
+            context: Context,
+            dispatcher: CoroutineDispatcher = Dispatchers.IO
+        ): SmartLauncherRoot? {
             if (outliersLauncherRoot == null) {
                 Log.e("test-slRoot", "calling slRoot constructor")
                 outliersLauncherRoot = SmartLauncherRoot(context, dispatcher)
@@ -86,7 +101,8 @@ class SmartLauncherRoot private constructor(val context: Context,
         // sizeTest()
         DataChangedBR().let {
             val intentFilter = IntentFilter(Constants.ACTION_LAUNCHER_DATA_REFRESH)
-            context.registerReceiver(it, intentFilter) }
+            context.registerReceiver(it, intentFilter)
+        }
         loadState()
     }
 
@@ -156,7 +172,7 @@ class SmartLauncherRoot private constructor(val context: Context,
                 launchSequence.add(packageName)
                 Log.v("test-lSeq", launchSequence.toString())
                 println("test-lSeq $launchSequence")
-            }catch (ex: Exception){
+            } catch (ex: Exception) {
                 Toast.makeText(context, "Exception: ${ex.message}", Toast.LENGTH_LONG).show()
                 FirebaseCrashlytics.getInstance().recordException(ex)
             }
@@ -186,10 +202,14 @@ class SmartLauncherRoot private constructor(val context: Context,
         }
     }
 
-    private suspend fun findKNN(launchVec: ArrayRealVector, packageName: String): ArrayList<AppModel> {
+    private suspend fun findKNN(
+        launchVec: ArrayRealVector,
+        packageName: String
+    ): ArrayList<AppModel> {
         val appPreds = ArrayList<AppModel>()
         coroutineScope {
-            var appScoresMap = HashMap<String, Double>()  // appPackage to score mapping, to later apply toSrotedMap
+            var appScoresMap =
+                HashMap<String, Double>()  // appPackage to score mapping, to later apply toSrotedMap
             var appFreq = HashMap<String, Int>()
             for (tuple in launchHistoryList) {
                 val lVecHist = tuple.value
@@ -206,8 +226,8 @@ class SmartLauncherRoot private constructor(val context: Context,
                 }
             }
 
-            for((k, v) in appScoresMap){
-                appScoresMap[k] = v/(appFreq[k] ?: 1)
+            for ((k, v) in appScoresMap) {
+                appScoresMap[k] = v / (appFreq[k] ?: 1)
             }
 
             var breaker = 0
@@ -311,7 +331,7 @@ class SmartLauncherRoot private constructor(val context: Context,
                  */
                 // appIdx could be null in cases where one of the apps in the launch sequence has been uninstalled
                 val appIdx = appToIdxMap[appPackage]
-                if(appIdx == null)
+                if (appIdx == null)
                     continue
                 val appValue = APP_USAGE_DECAY_RATE.pow(i)
 
@@ -342,7 +362,10 @@ class SmartLauncherRoot private constructor(val context: Context,
                 val vecTemp = launchHistoryList.getValueAt(0)
                 vecTemp?.let {
                     val oldSize = vecTemp.dimension - EXPLICIT_FEATURES_COUNT
-                    Log.d("test-refreshAppList", "event installed if check--$oldSize, ${allInstalledApps.size}")
+                    Log.d(
+                        "test-refreshAppList",
+                        "event installed if check--$oldSize, ${allInstalledApps.size}"
+                    )
                     if (oldSize + 1 != allInstalledApps.size) {
                         // something unexpected happened. log it!
                         FirebaseCrashlytics.getInstance().log(
@@ -359,7 +382,10 @@ class SmartLauncherRoot private constructor(val context: Context,
                 val vecTemp = launchHistoryList.getValueAt(0)
                 vecTemp?.let {
                     val oldSize = vecTemp.dimension - EXPLICIT_FEATURES_COUNT
-                    Log.d("test-refreshAppList", "event uninstalled if check--$oldSize, ${allInstalledApps.size}")
+                    Log.d(
+                        "test-refreshAppList",
+                        "event uninstalled if check--$oldSize, ${allInstalledApps.size}"
+                    )
                     if (oldSize - 1 != allInstalledApps.size) {
                         // something unexpected happened. log it!
                         FirebaseCrashlytics.getInstance().log(
@@ -455,7 +481,7 @@ class SmartLauncherRoot private constructor(val context: Context,
         }
     }
 
-    fun cleanUp(){
+    fun cleanUp() {
         saveState()
     }
 
@@ -475,7 +501,7 @@ class SmartLauncherRoot private constructor(val context: Context,
     }
 
     suspend fun saveLaunchSequence() {
-        if(launchSequence.size == 0)
+        if (launchSequence.size == 0)
             return
         val fileLaunchSeq = File(
             Utils.getAppDataFolderInternal(context),
@@ -486,7 +512,7 @@ class SmartLauncherRoot private constructor(val context: Context,
     }
 
     suspend fun saveLaunchHistory() {
-        if(launchHistoryList.isEmpty())
+        if (launchHistoryList.isEmpty())
             return
         val file = File(
             Utils.getAppDataFolderInternal(context),
@@ -499,7 +525,7 @@ class SmartLauncherRoot private constructor(val context: Context,
     }
 
     suspend fun savePreds() {
-        if(appSuggestions.isEmpty())
+        if (appSuggestions.isEmpty())
             return
         val file = File(
             Utils.getAppDataFolderInternal(context),
@@ -515,7 +541,7 @@ class SmartLauncherRoot private constructor(val context: Context,
             Utils.getAppDataFolderInternal(context),
             Constants.LAUNCH_SEQUENCE_SAVE_FILE
         )
-        if(!fileLaunchSeq.exists())
+        if (!fileLaunchSeq.exists())
             return
         // val temp = Utils.readFromFile<ArrayList<String>>(context, fileLaunchSeq.absolutePath)
         try {
@@ -524,10 +550,11 @@ class SmartLauncherRoot private constructor(val context: Context,
             for (i in 0 until jArray.length()) {
                 launchSequence.add(jArray.getString(i))
             }
-        }catch (ex: JSONException){
+        } catch (ex: JSONException) {
             LogHelper.getLogHelper(context).addLogToQueue(
                 "test-loadLaunchSeq -- ${Log.getStackTraceString(ex)}",
-                LogHelper.LOG_LEVEL.ERROR, context)
+                LogHelper.LOG_LEVEL.ERROR, context
+            )
         }
 
         Log.d("test-loadLaunchSeq", "$launchSequence")
@@ -540,7 +567,7 @@ class SmartLauncherRoot private constructor(val context: Context,
             Utils.getAppDataFolderInternal(context),
             Constants.LAUNCH_HISTORY_SAVE_FILE
         )
-        if(!file.exists())
+        if (!file.exists())
             return
         // val checkPoint = Utils.readFromFileAsString(context, file.absolutePath)
         val checkPoint = FileUtils.readFileToString(file)
@@ -552,12 +579,12 @@ class SmartLauncherRoot private constructor(val context: Context,
             try {
                 val temp = JSONArray(checkPoint)
                 launchHistoryList.clear()
-                for(i in 0 until temp.length()){
+                for (i in 0 until temp.length()) {
                     val tupleJObj = temp.getJSONObject(i)
                     val key = tupleJObj.getString("key")
                     val value = tupleJObj.getJSONObject("value").getJSONArray("data")
                     val vec = ArrayRealVector(value.length())
-                    for(j in 0 until value.length()){
+                    for (j in 0 until value.length()) {
                         vec.setEntry(j, value.getDouble(j))
                     }
                     launchHistoryList.add(key, vec)
@@ -578,7 +605,7 @@ class SmartLauncherRoot private constructor(val context: Context,
             Utils.getAppDataFolderInternal(context),
             Constants.APP_SUGGESTIONS_SAVE_FILE
         )
-        if(!file.exists())
+        if (!file.exists())
             return
         // val temp = Utils.readFromFile<ArrayList<String>>(context, file.absolutePath)
         try {
@@ -595,9 +622,12 @@ class SmartLauncherRoot private constructor(val context: Context,
                     }
                 }
             }
-        }catch (ex: JSONException){
+        } catch (ex: JSONException) {
             LogHelper.getLogHelper(context).addLogToQueue(
-                "test-loadPreds -- ${Log.getStackTraceString(ex)}", LogHelper.LOG_LEVEL.ERROR, context)
+                "test-loadPreds -- ${Log.getStackTraceString(ex)}",
+                LogHelper.LOG_LEVEL.ERROR,
+                context
+            )
         }
         appSuggestionsLiveData.postValue(appSuggestions)  // TODO not notifying on device restart
         Log.d("test-loadPreds", "$appSuggestions")
@@ -617,18 +647,21 @@ class SmartLauncherRoot private constructor(val context: Context,
                 /*counterMap = counterMap.entries.sortedBy { -it.value }
                     .associate { it.toPair() } as ArrayMap<String, Int>*/
                 val counterMap1 = counterMap.toList().sortedBy { (key, value) -> value }.toMap()
-                Log.v("test-counter", "$counterMap1, threshold=${0.01* HISTORY_MAX_SIZE}")
-                for((packageName, frequency) in counterMap1){
-                    if(frequency < 0.01* HISTORY_MAX_SIZE){ // frequency less that 1% of MAX size
+                Log.v("test-counter", "$counterMap1, threshold=${0.01 * HISTORY_MAX_SIZE}")
+                for ((packageName, frequency) in counterMap1) {
+                    if (frequency < 0.01 * HISTORY_MAX_SIZE) { // frequency less that 1% of MAX size
                         launchHistoryList.removeEntriesWithKey(packageName)
-                        Log.v("test-cleanUpHistory", "deleted package: $packageName with $frequency launches")
+                        Log.v(
+                            "test-cleanUpHistory",
+                            "deleted package: $packageName with $frequency launches"
+                        )
                     }
                 }
             }
         }
     }
 
-    class DataChangedBR: BroadcastReceiver() {
+    class DataChangedBR : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             Log.d("test-onReceive", "${intent?.action}")
             outliersLauncherRoot?.loadState()

@@ -1,3 +1,13 @@
+/*
+ *  Copyright (c) 2021. Asutosh Nayak (nayak.asutosh@ymail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ */
+
 package com.outliers.smartlauncher.models
 
 import android.content.Context
@@ -9,23 +19,23 @@ import android.os.Parcel
 import android.os.Parcelable
 import android.util.Log
 import com.outliers.smartlauncher.utils.Utils.getApplicationName
-import java.io.Serializable
-import java.util.*
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 
-data class AppModel(var appName: String, var packageName: String,
-                    var mainActivityName: String, var versionName: String,
-                    var appIconId: Int, var versionCode: Int,
-                    var appIcon: Drawable? = null, var launchIntent: Intent? = null
+data class AppModel(
+    var appName: String, var packageName: String,
+    var mainActivityName: String, var versionName: String,
+    var appIconId: Int, var versionCode: Int,
+    var appIcon: Drawable? = null, var launchIntent: Intent? = null
 ) : Parcelable {
 
-    constructor(parcel: Parcel) : this(parcel.readString() ?: "",
-            parcel.readString() ?: "",
-            parcel.readString() ?: "",
-            parcel.readString() ?: "",
-            parcel.readInt(), parcel.readInt(),
-            parcel.readParcelable(Intent::class.java.classLoader)) {}
+    constructor(parcel: Parcel) : this(
+        parcel.readString() ?: "",
+        parcel.readString() ?: "",
+        parcel.readString() ?: "",
+        parcel.readString() ?: "",
+        parcel.readInt(), parcel.readInt(),
+        parcel.readParcelable(Intent::class.java.classLoader)
+    ) {
+    }
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
         parcel.writeString(appName)
@@ -51,24 +61,32 @@ data class AppModel(var appName: String, var packageName: String,
         }
 
         @JvmStatic
-        fun getAppModelsFromAppInfoList(applicationInfos: List<ApplicationInfo>, context: Context): ArrayList<AppModel> {
+        fun getAppModelsFromAppInfoList(
+            applicationInfos: List<ApplicationInfo>,
+            context: Context
+        ): ArrayList<AppModel> {
             val appModels = ArrayList<AppModel>()
             for (applicationInfo in applicationInfos) {
-                val appModel = AppModel("", "",
-                        "", "",
-                        0, 0, null, null)
+                val appModel = AppModel(
+                    "", "",
+                    "", "",
+                    0, 0, null, null
+                )
                 appModel.appIconId = applicationInfo.icon
                 appModel.appName = getApplicationName(context, applicationInfo)
                 appModel.packageName = applicationInfo.packageName
                 try {
-                    val componentName = context.packageManager.getLaunchIntentForPackage(applicationInfo.packageName)!!.component
+                    val componentName =
+                        context.packageManager.getLaunchIntentForPackage(applicationInfo.packageName)!!.component
                     appModel.mainActivityName = componentName!!.className
                 } catch (ex: NullPointerException) {
                 }
                 try {
                     val packageInfo = context.packageManager.getPackageInfo(
-                            appModel.packageName, 0)
-                    appModel.versionCode = packageInfo.versionCode // TODO use longVersionCode instead
+                        appModel.packageName, 0
+                    )
+                    appModel.versionCode =
+                        packageInfo.versionCode // TODO use longVersionCode instead
                     appModel.versionName = packageInfo.versionName //
                 } catch (ex: Exception) {
                 }
@@ -78,17 +96,23 @@ data class AppModel(var appName: String, var packageName: String,
         }
 
         @JvmStatic
-        fun getAppModelsFromPackageInfoList(packageInfos: List<PackageInfo>, appInfos: List<ApplicationInfo>, context: Context): ArrayList<AppModel> {
+        fun getAppModelsFromPackageInfoList(
+            packageInfos: List<PackageInfo>,
+            appInfos: List<ApplicationInfo>,
+            context: Context
+        ): ArrayList<AppModel> {
             val appModels = ArrayList<AppModel>()
             val userFacingApps = HashMap<String, Intent?>()
 
-            for(appInfo: ApplicationInfo in appInfos){
+            for (appInfo: ApplicationInfo in appInfos) {
                 /*if((appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 ||
                     (appInfo.flags and ApplicationInfo.FLAG_INSTALLED) != 0){*/
-                if(context.packageManager.getLaunchIntentForPackage(appInfo.packageName) != null){
+                if (context.packageManager.getLaunchIntentForPackage(appInfo.packageName) != null) {
                     // getLaunchIntent for package. if not null then user-facing
-                    userFacingApps.put(appInfo.packageName,
-                        context.packageManager.getLaunchIntentForPackage(appInfo.packageName))
+                    userFacingApps.put(
+                        appInfo.packageName,
+                        context.packageManager.getLaunchIntentForPackage(appInfo.packageName)
+                    )
                 }
             }
             // Log.v("test", userFacingApps.size.toString())
@@ -111,16 +135,16 @@ data class AppModel(var appName: String, var packageName: String,
                     // if(userFacingApps.contains(appModel.packageName))
                     if (appModel.launchIntent != null) //  || appModel.launchIntent != null
                         appModels.add(appModel)
-                }catch (ex: NullPointerException){
+                } catch (ex: NullPointerException) {
                     Log.e("appModelError", Log.getStackTraceString(ex) + "\n" + p.packageName)
                 }
             }
             return appModels
         }
 
-        fun getRandomApps(size:Int = 5): ArrayList<AppModel>{
+        fun getRandomApps(size: Int = 5): ArrayList<AppModel> {
             val appModels = ArrayList<AppModel>()
-            for(i in 0 until size){
+            for (i in 0 until size) {
                 val packageName = "com.test.package$i"
                 val appName = "AppNum$i"
                 val versionName = "1.0"
@@ -130,7 +154,8 @@ data class AppModel(var appName: String, var packageName: String,
                 val appModel = AppModel(
                     appName, packageName,
                     "", versionName,
-                    0, versionCode, appIcon, launchIntent)
+                    0, versionCode, appIcon, launchIntent
+                )
                 appModels.add(appModel)
             }
             return appModels

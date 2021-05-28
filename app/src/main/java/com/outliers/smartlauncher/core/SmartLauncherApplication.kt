@@ -1,3 +1,13 @@
+/*
+ *  Copyright (c) 2021. Asutosh Nayak (nayak.asutosh@ymail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ */
+
 package com.outliers.smartlauncher.core
 
 import android.app.Application
@@ -11,7 +21,7 @@ import com.outliers.smartlauncher.debugtools.loghelper.LogHelper
 import java.util.*
 
 
-class SmartLauncherApplication: Application() {
+class SmartLauncherApplication : Application() {
 
     var smartLauncherRoot: SmartLauncherRoot? = null
     val appListRefreshed: MutableLiveData<Boolean> = MutableLiveData()
@@ -35,43 +45,47 @@ class SmartLauncherApplication: Application() {
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, exception ->
             // if crash involves any component of HLIB Library, log it; you could remove this check and log all crashes too and use this for your own debugging as well
-                // Save the fact we crashed out.
-                val crashId: String =
-                    UUID.randomUUID().toString() // optional -- can be set to any value
-                smartLauncherRoot?.launcherPref?.edit()?.putBoolean("crash_restart", true)?.commit()
-                smartLauncherRoot?.launcherPref?.edit()?.putString("crash_id", crashId)?.commit()
-                LogHelper.getLogHelper(this).handleCrash(this, exception, crashId)
-                val test: Boolean =
-                    smartLauncherRoot?.launcherPref?.getBoolean(
-                        "crash_restart",
-                        false
-                    ) == true
-                Log.e("test", test.toString() + "")
-                defaultHandler.uncaughtException(
-                    thread,
-                    exception
-                ) // this without crashAct call,without run delay,without SysExit works(doesn't hang)
+            // Save the fact we crashed out.
+            val crashId: String =
+                UUID.randomUUID().toString() // optional -- can be set to any value
+            smartLauncherRoot?.launcherPref?.edit()?.putBoolean("crash_restart", true)?.commit()
+            smartLauncherRoot?.launcherPref?.edit()?.putString("crash_id", crashId)?.commit()
+            LogHelper.getLogHelper(this).handleCrash(this, exception, crashId)
+            val test: Boolean =
+                smartLauncherRoot?.launcherPref?.getBoolean(
+                    "crash_restart",
+                    false
+                ) == true
+            Log.e("test", test.toString() + "")
+            defaultHandler.uncaughtException(
+                thread,
+                exception
+            ) // this without crashAct call,without run delay,without SysExit works(doesn't hang)
         }
     }
 
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
 
-        when(level){
+        when (level) {
             TRIM_MEMORY_RUNNING_LOW -> cleanAndBackUp()
-            TRIM_MEMORY_BACKGROUND -> {cleanAndBackUp()
-            Log.v("test-application", "BG called")}
-            TRIM_MEMORY_UI_HIDDEN -> {cleanAndBackUp()
-                Log.v("test-application", "UI Hidden called")}
+            TRIM_MEMORY_BACKGROUND -> {
+                cleanAndBackUp()
+                Log.v("test-application", "BG called")
+            }
+            TRIM_MEMORY_UI_HIDDEN -> {
+                cleanAndBackUp()
+                Log.v("test-application", "UI Hidden called")
+            }
         }
     }
 
-    fun cleanAndBackUp(){
+    fun cleanAndBackUp() {
         // TODO resource/cache cleanup, if any
         smartLauncherRoot?.cleanUp()
     }
 
-    private val appInstallBR = object : BroadcastReceiver(){
+    private val appInstallBR = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val packageName = intent?.data?.encodedSchemeSpecificPart
             Log.v("test-", "app installed:$packageName")
@@ -80,7 +94,7 @@ class SmartLauncherApplication: Application() {
         }
     }
 
-    private val appUninstallBR = object : BroadcastReceiver(){
+    private val appUninstallBR = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val packageName = intent?.data?.encodedSchemeSpecificPart
             Log.v("test-", "app uninstalled:$packageName")

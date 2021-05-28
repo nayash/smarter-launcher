@@ -1,7 +1,16 @@
+/*
+ *  Copyright (c) 2021. Asutosh Nayak (nayak.asutosh@ymail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ */
+
 package com.outliers.smartlauncher.core
 
 import java.util.*
-import kotlin.collections.ArrayList
 
 class LaunchHistoryList<K, V>(size: Int = 100) : Collection<Tuple<K, V>> {
     private val historyList: MutableList<Tuple<K, V>> =
@@ -50,7 +59,7 @@ class LaunchHistoryList<K, V>(size: Int = 100) : Collection<Tuple<K, V>> {
     }*/
 
     fun getValueAt(index: Int): V? {
-        if(index >= size)
+        if (index >= size)
             return null
         return historyList[index].value
     }
