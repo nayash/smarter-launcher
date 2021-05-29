@@ -142,7 +142,7 @@ class LogHelper private constructor(private val context: Context) {
 
     @Synchronized
     private fun writePendingLogs() {
-        executorService!!.submit(writeLogAsyncRunnable)
+        executorService.submit(writeLogAsyncRunnable)
     }
 
     fun disableLogging() {

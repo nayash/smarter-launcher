@@ -119,6 +119,6 @@ class LogsActivity : AppCompatActivity(), FilesRVAdapterParent {
     }
 
     override fun getContext(): Context {
-        return this;
+        return this
     }
 }

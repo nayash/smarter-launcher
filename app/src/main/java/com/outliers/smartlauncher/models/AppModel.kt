@@ -19,7 +19,6 @@ import android.os.Parcel
 import android.os.Parcelable
 import android.util.Log
 import com.outliers.smartlauncher.utils.Utils.getApplicationName
-import kotlinx.android.parcel.Parcelize
 
 data class AppModel(
     var appName: String, var packageName: String,
@@ -35,8 +34,7 @@ data class AppModel(
         parcel.readString() ?: "",
         parcel.readInt(), parcel.readInt(),
         parcel.readParcelable(Intent::class.java.classLoader)
-    ) {
-    }
+    )
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
         parcel.writeString(appName)

@@ -114,7 +114,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         rvApps.addItemDecoration(
             RVItemDecoration(
                 appsPerRow,
-                getResources().getDimensionPixelSize(R.dimen.margin_default), true
+                resources.getDimensionPixelSize(R.dimen.margin_default), true
             )
         )
         rvApps.adapter = adapter
@@ -360,14 +360,14 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
         if (event.action == MotionEvent.ACTION_DOWN) {
-            if (sheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
+            if (sheetBehavior.state == BottomSheetBehavior.STATE_EXPANDED) {
                 val outRect = Rect()
                 binding.appListSheet.getGlobalVisibleRect(outRect)
                 if (!outRect.contains(
                         event.rawX.toInt(),
                         event.rawY.toInt()
                     )
-                ) sheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED)
+                ) sheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
             }
         }
         return super.dispatchTouchEvent(event)
@@ -410,7 +410,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
                 )
                 tableRow.gravity = Gravity.CENTER
                 tableRow.weightSum = appsPerRow.toFloat()
-                tableRow?.layoutParams = layoutParams
+                tableRow.layoutParams = layoutParams
             }
             appView.findViewById<ImageView>(R.id.iv_app).setImageDrawable(appModel.appIcon)
             appView.findViewById<TextView>(R.id.tv_app_name).visibility = View.GONE
@@ -461,7 +461,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
             binding.rvSuggestions.addItemDecoration(
                 RVItemDecoration(
                     appsPerRow,
-                    getResources().getDimensionPixelSize(R.dimen.margin_default), true
+                    resources.getDimensionPixelSize(R.dimen.margin_default), true
                 )
             )
             binding.rvSuggestions.adapter = appPredAdapter

@@ -332,7 +332,7 @@ class SmartLauncherRoot private constructor(
                 val appValue = APP_USAGE_DECAY_RATE.pow(i)
 
                 launchVec.setEntry(
-                    EXPLICIT_FEATURES_COUNT + appIdx!!,
+                    EXPLICIT_FEATURES_COUNT + appIdx,
                     appValue
                 )
                 Log.d("test-ATF-val", "$packageName, $appIdx, $EXPLICIT_FEATURES_COUNT, $appValue")
@@ -414,7 +414,7 @@ class SmartLauncherRoot private constructor(
             synchronized(launchHistoryList) {
                 for ((i, tuple) in launchHistoryList.withIndex()) {
                     val vector = tuple.value
-                    vector?.let {
+                    vector.let {
                         val newVec = vector.append(0.0) as ArrayRealVector
                         Log.v("test-newVec", "${newVec.dimension}")
                         launchHistoryList.updateValueAt(i, newVec)
@@ -433,7 +433,7 @@ class SmartLauncherRoot private constructor(
                 synchronized(launchHistoryList) {
                     for ((i, tuple) in launchHistoryList.withIndex()) {
                         val vector = tuple.value
-                        vector?.let {
+                        vector.let {
                             val newVec = vector.getSubVector(0, idxToRemove).append(
                                 vector.getSubVector(
                                     idxToRemove + 1,
