@@ -340,9 +340,9 @@ object Utils {
             }
             return true
         } catch (ex: Exception) {
-            LogHelper.getLogHelper(context).addLogToQueue(
+            LogHelper.getLogHelper(context)?.addLogToQueue(
                 "writeToFileException:" +
-                        "${Log.getStackTraceString(ex)}", LogHelper.LOG_LEVEL.ERROR, context
+                        Log.getStackTraceString(ex), LogHelper.LOG_LEVEL.ERROR, context
             )
             return false
         }
@@ -356,7 +356,7 @@ object Utils {
                 obj = Gson().fromJson(temp, T::class.java)
             }
         } catch (ex: Exception) {
-            LogHelper.getLogHelper(context).addLogToQueue(
+            LogHelper.getLogHelper(context)?.addLogToQueue(
                 "readFromFileException1:" +
                         "${Log.getStackTraceString(ex)}\nobj=${obj.toString()}",
                 LogHelper.LOG_LEVEL.ERROR,
@@ -381,7 +381,7 @@ object Utils {
                 br.close()
             }
         } catch (ex: Exception) {
-            LogHelper.getLogHelper(context).addLogToQueue(
+            LogHelper.getLogHelper(context)?.addLogToQueue(
                 "readFromFileException2:" +
                         "${Log.getStackTraceString(ex)}\nobj=${sb.toString()}",
                 LogHelper.LOG_LEVEL.ERROR,
@@ -405,7 +405,7 @@ object Utils {
                 br.close()
             }
         } catch (ex: Exception) {
-            LogHelper.getLogHelper(context).addLogToQueue(
+            LogHelper.getLogHelper(context)?.addLogToQueue(
                 "readFromFileException2:" +
                         "${Log.getStackTraceString(ex)}\nobj=${sb.toString()}",
                 LogHelper.LOG_LEVEL.ERROR,

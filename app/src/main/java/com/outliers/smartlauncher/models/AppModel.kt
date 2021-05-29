@@ -19,6 +19,7 @@ import android.os.Parcel
 import android.os.Parcelable
 import android.util.Log
 import com.outliers.smartlauncher.utils.Utils.getApplicationName
+import kotlinx.android.parcel.Parcelize
 
 data class AppModel(
     var appName: String, var packageName: String,
@@ -102,11 +103,9 @@ data class AppModel(
             context: Context
         ): ArrayList<AppModel> {
             val appModels = ArrayList<AppModel>()
-            val userFacingApps = HashMap<String, Intent?>()
+            /*val userFacingApps = HashMap<String, Intent?>()
 
             for (appInfo: ApplicationInfo in appInfos) {
-                /*if((appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 ||
-                    (appInfo.flags and ApplicationInfo.FLAG_INSTALLED) != 0){*/
                 if (context.packageManager.getLaunchIntentForPackage(appInfo.packageName) != null) {
                     // getLaunchIntent for package. if not null then user-facing
                     userFacingApps.put(
@@ -114,7 +113,7 @@ data class AppModel(
                         context.packageManager.getLaunchIntentForPackage(appInfo.packageName)
                     )
                 }
-            }
+            }*/
             // Log.v("test", userFacingApps.size.toString())
             for (p in packageInfos) {
                 try {
@@ -133,7 +132,7 @@ data class AppModel(
                     appModel.launchIntent =
                         context.packageManager.getLaunchIntentForPackage(p.packageName)
                     // if(userFacingApps.contains(appModel.packageName))
-                    if (appModel.launchIntent != null) //  || appModel.launchIntent != null
+                    if (appModel.launchIntent != null)
                         appModels.add(appModel)
                 } catch (ex: NullPointerException) {
                     Log.e("appModelError", Log.getStackTraceString(ex) + "\n" + p.packageName)

@@ -49,7 +49,6 @@ class SmartLauncherRoot private constructor(
     val context: Context,
     val dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) {
-
     val appModels: MutableList<AppModel> =
         Collections.synchronizedList(mutableListOf<AppModel>())  // TODO consider using CopyOnWriteArrayList !!
     val liveAppModels: MutableLiveData<MutableList<AppModel>> = MutableLiveData()
@@ -71,6 +70,7 @@ class SmartLauncherRoot private constructor(
     val logHelper = LogHelper.getLogHelper(context)
     var skip = false
     var currentLocation: Location? = null
+    var scope: CoroutineScope = CoroutineScope(Job() + dispatcher)
 
     companion object {
         private var outliersLauncherRoot: SmartLauncherRoot? = null
@@ -159,14 +159,14 @@ class SmartLauncherRoot private constructor(
     fun appLaunched(packageName: String) {
         if (skip)
             return
-        CoroutineScope(dispatcher).launch {
+        scope.launch {
             try { // only to avoid crashes so that algorithm can be tested in real env. remove later and fix all crashes lazy bum
                 Log.v("test-lseq", "calling processAppSuggestion")
                 println("calling processAppSuggestion")
                 processAppSuggestion(packageName)
                 Log.v("test-lseq", "called processAppSuggestion")
                 println("called processAppSuggestion")
-                if (launchSequence.size >= 3)
+                if (launchSequence.size >= WINDOW_SIZE)
                     launchSequence.removeAt(0)  // remove oldest app history
                 launchSequence.add(packageName)
                 Log.v("test-lSeq", launchSequence.toString())
@@ -215,7 +215,7 @@ class SmartLauncherRoot private constructor(
                 if (lVecHist != null) {
                     Log.v("test-dimCheck", "${lVecHist.dimension}, ${launchVec.dimension}")
                     // println("test-dimCheck ${lVecHist.dimension}, ${launchVec.dimension}")
-                    // val distance = lVecHist.getDistance(launchVec)
+                    // val distance = lVecHist.getDistance(launchVec)  // Euclidean distance didn't work well
                     // val similarity = 1 / (distance + EPSILON)
                     val similarity = lVecHist.cosine(launchVec)
                     var prevScore = appScoresMap[tuple.key] ?: 0.0
@@ -241,7 +241,6 @@ class SmartLauncherRoot private constructor(
                 if (breaker >= APP_SUGGESTION_COUNT)
                     break
             }
-            println("findKNN scope end")
         }
         println("findKNN return ${appPreds.size}, $appPreds")
         return appPreds
@@ -344,12 +343,12 @@ class SmartLauncherRoot private constructor(
         return launchVec
     }
 
-    fun notifyNewSuggestions() {
+    private fun notifyNewSuggestions() {
         appSuggestionsLiveData.postValue(appSuggestions)
     }
 
     fun refreshAppList(eventType: Int, packageName: String?) {
-        CoroutineScope(dispatcher).launch {
+        scope.launch {
             appModels.clear()
             Log.d("test-refreshAppList", appModels.size.toString())
             allInstalledApps
@@ -406,7 +405,7 @@ class SmartLauncherRoot private constructor(
         }
     }
 
-    suspend fun addNewDimensionToHistory(packageName: String) {
+    private suspend fun addNewDimensionToHistory(packageName: String) {
         appToIdxMap[packageName] = appToIdxMap.size
         appToIdMap[packageName] = packageName.hashCode()
         idToApp[packageName.hashCode()] = packageName
@@ -426,7 +425,7 @@ class SmartLauncherRoot private constructor(
         saveState()
     }
 
-    suspend fun removeOldDimension(packageName: String) {
+    private suspend fun removeOldDimension(packageName: String) {
         Log.v("test-removeOldDim", "called")
         coroutineScope {
             val idxToRemove = appToIdxMap[packageName]
@@ -453,23 +452,13 @@ class SmartLauncherRoot private constructor(
         saveState()
     }
 
-    fun sizeTest() {
-        for (i in 0..5000) {
-            launchHistoryList.add(i.toString(), ArrayRealVector(allInstalledApps.size))
-        }
-        Log.d("test-sizeTestB4", launchHistoryList.size.toString())
-        // JUtils.dropFirstKey(launchHistory)  // wrapper Java method to avoid "unresolved overload ambiguity"
-        launchHistoryList.removeAt(0)
-        Log.d("test-sizeTestAfter", launchHistoryList.size.toString())
-    }
-
-    fun saveState() {
-        CoroutineScope(dispatcher).launch {
+    private fun saveState() {
+        scope.launch {
             saveLaunchSequence()
             saveLaunchHistory()
             savePreds()
 
-            LogHelper.getLogHelper(context).addLogToQueue(
+            LogHelper.getLogHelper(context)?.addLogToQueue(
                 "saveState called: " +
                         "launchSeq=${launchSequence.size}" +
                         ", histSize=${launchHistoryList.size}, preds=${appSuggestions.size}",
@@ -483,12 +472,12 @@ class SmartLauncherRoot private constructor(
     }
 
     fun loadState() {
-        CoroutineScope(dispatcher).launch {
+        scope.launch {
             loadLaunchSequence()
             loadLaunchHistory()
             loadPreds()
 
-            LogHelper.getLogHelper(context).addLogToQueue(
+            LogHelper.getLogHelper(context)?.addLogToQueue(
                 "loadState called: " +
                         "launchSeq=${launchSequence.size}" +
                         ", histSize=${launchHistoryList.size}, preds=${appSuggestions.size}",
@@ -500,37 +489,43 @@ class SmartLauncherRoot private constructor(
     suspend fun saveLaunchSequence() {
         if (launchSequence.size == 0)
             return
-        val fileLaunchSeq = File(
-            Utils.getAppDataFolderInternal(context),
-            Constants.LAUNCH_SEQUENCE_SAVE_FILE
-        )
-        // Utils.writeToFile(context, fileLaunchSeq.absolutePath, launchSequence)
-        FileUtils.writeStringToFile(fileLaunchSeq, Gson().toJson(launchSequence).toString())
+        withContext(dispatcher) { // to enforce this function to be "suspend" type
+            val fileLaunchSeq = File(
+                Utils.getAppDataFolderInternal(context),
+                Constants.LAUNCH_SEQUENCE_SAVE_FILE
+            )
+            // Utils.writeToFile(context, fileLaunchSeq.absolutePath, launchSequence)
+            FileUtils.writeStringToFile(fileLaunchSeq, Gson().toJson(launchSequence).toString())
+        }
     }
 
     suspend fun saveLaunchHistory() {
         if (launchHistoryList.isEmpty())
             return
-        val file = File(
-            Utils.getAppDataFolderInternal(context),
-            Constants.LAUNCH_HISTORY_SAVE_FILE
-        )
-        // Utils.writeToFile(context, file.absolutePath, launchHistoryList)
-        FileUtils.writeStringToFile(file, Gson().toJson(launchHistoryList).toString())
-        // launcherPref.edit().putString(Constants.LAUNCH_HISTORY_SAVE_FILE, Gson().toJson(launchHistory)).apply()
-        Log.v("test-launchHistorySave", Gson().toJson(launchHistoryList))
+        withContext(dispatcher) {
+            val file = File(
+                Utils.getAppDataFolderInternal(context),
+                Constants.LAUNCH_HISTORY_SAVE_FILE
+            )
+            // Utils.writeToFile(context, file.absolutePath, launchHistoryList)
+            FileUtils.writeStringToFile(file, Gson().toJson(launchHistoryList).toString())
+            // launcherPref.edit().putString(Constants.LAUNCH_HISTORY_SAVE_FILE, Gson().toJson(launchHistory)).apply()
+            Log.v("test-launchHistorySave", Gson().toJson(launchHistoryList))
+        }
     }
 
     suspend fun savePreds() {
         if (appSuggestions.isEmpty())
             return
-        val file = File(
-            Utils.getAppDataFolderInternal(context),
-            Constants.APP_SUGGESTIONS_SAVE_FILE
-        )
-        val temp: List<String> = appSuggestions.map { it.packageName }
-        // Utils.writeToFile(context, file.absolutePath, temp)
-        FileUtils.writeStringToFile(file, Gson().toJson(temp).toString())
+        withContext(dispatcher) {
+            val file = File(
+                Utils.getAppDataFolderInternal(context),
+                Constants.APP_SUGGESTIONS_SAVE_FILE
+            )
+            val temp: List<String> = appSuggestions.map { it.packageName }
+            // Utils.writeToFile(context, file.absolutePath, temp)
+            FileUtils.writeStringToFile(file, Gson().toJson(temp).toString())
+        }
     }
 
     suspend fun loadLaunchSequence() {
@@ -540,23 +535,23 @@ class SmartLauncherRoot private constructor(
         )
         if (!fileLaunchSeq.exists())
             return
-        // val temp = Utils.readFromFile<ArrayList<String>>(context, fileLaunchSeq.absolutePath)
-        try {
-            launchSequence.clear()
-            val jArray = JSONArray(FileUtils.readFileToString(fileLaunchSeq))
-            for (i in 0 until jArray.length()) {
-                launchSequence.add(jArray.getString(i))
-            }
-        } catch (ex: JSONException) {
-            LogHelper.getLogHelper(context).addLogToQueue(
-                "test-loadLaunchSeq -- ${Log.getStackTraceString(ex)}",
-                LogHelper.LOG_LEVEL.ERROR, context
-            )
-        }
 
-        Log.d("test-loadLaunchSeq", "$launchSequence")
-        /*if (temp != null)
-            launchSequence = temp*/
+        withContext(dispatcher) {
+            // val temp = Utils.readFromFile<ArrayList<String>>(context, fileLaunchSeq.absolutePath)
+            try {
+                launchSequence.clear()
+                val jArray = JSONArray(FileUtils.readFileToString(fileLaunchSeq))
+                for (i in 0 until jArray.length()) {
+                    launchSequence.add(jArray.getString(i))
+                }
+            } catch (ex: JSONException) {
+                LogHelper.getLogHelper(context)?.addLogToQueue(
+                    "test-loadLaunchSeq -- ${Log.getStackTraceString(ex)}",
+                    LogHelper.LOG_LEVEL.ERROR, context
+                )
+            }
+            Log.d("test-loadLaunchSeq", "$launchSequence")
+        }
     }
 
     suspend fun loadLaunchHistory() {
@@ -606,29 +601,31 @@ class SmartLauncherRoot private constructor(
         if (!file.exists())
             return
         // val temp = Utils.readFromFile<ArrayList<String>>(context, file.absolutePath)
-        try {
-            val temp = JSONArray(FileUtils.readFileToString(file))
-            appSuggestions.clear()
-            if (temp != null) {
-                for (i in 0 until temp.length()) {
-                    val packageName = temp.getString(i)
-                    Log.d("test-loadPreds", "loop")
-                    for (appModel in allInstalledApps) {
-                        // Log.d("test-loadPreds", "inside loop")
-                        if (appModel.packageName.equals(packageName, true))
-                            appSuggestions.add(appModel)
+        withContext(dispatcher) {
+            try {
+                val temp = JSONArray(FileUtils.readFileToString(file))
+                appSuggestions.clear()
+                if (temp != null) {
+                    for (i in 0 until temp.length()) {
+                        val packageName = temp.getString(i)
+                        Log.d("test-loadPreds", "loop")
+                        for (appModel in allInstalledApps) {
+                            // Log.d("test-loadPreds", "inside loop")
+                            if (appModel.packageName.equals(packageName, true))
+                                appSuggestions.add(appModel)
+                        }
                     }
                 }
+            } catch (ex: JSONException) {
+                LogHelper.getLogHelper(context)?.addLogToQueue(
+                    "test-loadPreds -- ${Log.getStackTraceString(ex)}",
+                    LogHelper.LOG_LEVEL.ERROR,
+                    context
+                )
             }
-        } catch (ex: JSONException) {
-            LogHelper.getLogHelper(context).addLogToQueue(
-                "test-loadPreds -- ${Log.getStackTraceString(ex)}",
-                LogHelper.LOG_LEVEL.ERROR,
-                context
-            )
+            appSuggestionsLiveData.postValue(appSuggestions)  // TODO not notifying on device restart
+            Log.d("test-loadPreds", "$appSuggestions")
         }
-        appSuggestionsLiveData.postValue(appSuggestions)  // TODO not notifying on device restart
-        Log.d("test-loadPreds", "$appSuggestions")
     }
 
     suspend fun cleanUpHistory() {
