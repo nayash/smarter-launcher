@@ -18,6 +18,7 @@ import android.content.IntentFilter
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import com.outliers.smartlauncher.debugtools.loghelper.LogHelper
+import java.lang.Exception
 import java.util.*
 
 
@@ -79,6 +80,13 @@ class SmartLauncherApplication : Application() {
     }
 
     fun cleanAndBackUp() {
+        try {
+            val pid = android.os.Process.myPid()
+            val cmd = "logcat --pid=$pid -d -f ${LogHelper.getLogHelper(this)?.logFile?.absolutePath}"
+            Runtime.getRuntime().exec(cmd)
+        }catch (ex:Exception){
+            Log.e("test-cleanAndBackUp","failed to write logs: ${Log.getStackTraceString(ex)}")
+        }
         smartLauncherRoot?.cleanUp()
     }
 

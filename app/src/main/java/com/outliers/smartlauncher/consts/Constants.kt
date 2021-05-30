@@ -19,5 +19,6 @@ class Constants {
         const val ACTION_LAUNCHER_DATA_REFRESH = "launcher-data-changed"
         const val DISTANCE_TYPE_COSINE = "cosine"
         const val DISTANCE_TYPE_EUCLIDEAN = "euclidean"
+        const val MIN_K = 20
     }
 }

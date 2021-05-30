@@ -17,6 +17,8 @@
     <string name="write_denied_consequence">File save/replacing need external storage read/write permission</string>
     <string name="location_disabled">Location is disabled. Prediction may be inaccurate</string>
 
+    <string name="smart_launcher_file_provider">com.outliers.smartlauncher.fileprovider</string>
+
     <string name="issue_mail_template">Hi User,\n\n Please briefly describe the issue you are facing:\n</string>
     <string name="sl_file_provider">com.outliers.fileprovider</string>
     <string name="choose_share_app">Choose an app to share with</string>

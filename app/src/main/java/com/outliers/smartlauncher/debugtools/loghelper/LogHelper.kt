@@ -30,14 +30,14 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 class LogHelper private constructor(private val context: Context) {
-    private val LOG_WRITE_BATCH_SIZE = 20
+    private val LOG_WRITE_BATCH_SIZE = if (BuildConfig.DEBUG) 1 else 10
     private val PAST_DAYS_LOGS_TO_KEEP = 4
 
     enum class LOG_LEVEL {
         INFO, WARNING, ERROR, CRITICAL
     }
 
-    private val logFile: File
+    val logFile: File
     private var llPendingLogs: LinkedList<String>? = null
     private val executorService: ExecutorService = Executors.newFixedThreadPool(5)
     private var writeLogAsyncRunnable: Runnable? = null
@@ -51,7 +51,7 @@ class LogHelper private constructor(private val context: Context) {
     private var logSP: SharedPreferences? = null
 
     private fun init() {
-        lock = Any()
+        lock = logFile
         llPendingLogs = LinkedList()
         writeLogAsyncRunnable = Runnable { writeLogs() }
         logDateTimeFormat = SimpleDateFormat(LOG_INFO_PREFIX_DATE_FORMAT)
@@ -128,15 +128,13 @@ class LogHelper private constructor(private val context: Context) {
 
     @Synchronized
     private fun addLogToQueue(logText: String) {
+        if (BuildConfig.DEBUG) Log.e("test-addLogToQueueMain", logText)
         if (!isLoggingAllowed) return
-        synchronized(lock!!) {
-            if (BuildConfig.DEBUG) Log.e("test-addLogToQueueMain", logText)
-            llPendingLogs!!.addLast(logText)
-            if (llPendingLogs!!.size >= LOG_WRITE_BATCH_SIZE) {
-                /** if collection size exceeds max allowed queue size,
-                 * call write method and dump written texts  */
-                writePendingLogs()
-            }
+        llPendingLogs!!.addLast(logText)
+        if (llPendingLogs!!.size >= LOG_WRITE_BATCH_SIZE) {
+            /** if collection size exceeds max allowed queue size,
+             * call write method and dump written texts  */
+            writePendingLogs()
         }
     }
 
@@ -314,7 +312,7 @@ class LogHelper private constructor(private val context: Context) {
                         buf.append("\r\n")
                         //buf.newLine();
                     } catch (e: Exception) {
-
+                        Log.e("test-writeLogEx1", Log.getStackTraceString(e))
                     } finally {
                         buf!!.flush()
                         buf.close()
@@ -324,7 +322,7 @@ class LogHelper private constructor(private val context: Context) {
                 }
             }
         } catch (ex: Exception) {
-
+            Log.e("test-writeLogEx2", Log.getStackTraceString(ex))
         }
     }
 

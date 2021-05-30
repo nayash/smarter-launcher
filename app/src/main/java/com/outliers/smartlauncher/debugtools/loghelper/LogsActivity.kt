@@ -12,6 +12,7 @@ package com.outliers.smartlauncher.debugtools.loghelper
 
 import android.content.Context
 import android.content.Intent
+import android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -23,10 +24,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.outliers.smartlauncher.R
 import com.outliers.smartlauncher.debugtools.loghelper.FilesRVAdapter.FilesRVAdapterParent
 import com.outliers.smartlauncher.utils.Utils
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import java.io.*
+import java.io.File
 
 class LogsActivity : AppCompatActivity(), FilesRVAdapterParent {
     var logHelper: LogHelper? = null
@@ -43,12 +41,17 @@ class LogsActivity : AppCompatActivity(), FilesRVAdapterParent {
 
     override fun itemClicked(position: Int, path: String) {
         val file = File(path)
-        CoroutineScope(Dispatchers.IO).launch {
+        val intent = Intent(Intent.ACTION_VIEW)
+        intent.flags = FLAG_GRANT_READ_URI_PERMISSION
+        val uri = FileProvider.getUriForFile(this, getString(R.string.smart_launcher_file_provider), file) //Uri.parse(file.absolutePath)
+        intent.setDataAndType(uri, "text/plain")
+        startActivity(intent)
+        /*CoroutineScope(Dispatchers.IO).launch {
             val logStr = Utils.readFromFileAsString(this@LogsActivity, path)
             runOnUiThread {
                 logStr?.let { Utils.showAlertDialog(this@LogsActivity, file.name, it, {}, {}) }
             }
-        }
+        }*/
     }
 
     override fun share(position: Int, path: String?) {

@@ -43,7 +43,9 @@ import java.io.File
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
+import kotlin.math.max
 import kotlin.math.pow
+import kotlin.math.sqrt
 
 class SmartLauncherRoot private constructor(
     val context: Context,
@@ -93,7 +95,7 @@ class SmartLauncherRoot private constructor(
         const val EPSILON = 0.1
         const val LOCATION_CACHE_LIFETIME_MILLIS = 5 * 60 * 1000 // 5 Mins
         const val HISTORY_MAX_SIZE = 2000
-        const val K = 15
+        var K = 20
         val distanceType = Constants.DISTANCE_TYPE_COSINE // or euclidean
     }
 
@@ -626,12 +628,14 @@ class SmartLauncherRoot private constructor(
                 }
                 Log.v("test-launchHistoryLoad", "${temp.length()}, ${launchHistoryList.size}")
                 cleanUpHistory()  // TODO review if this is correct place to perform clean up or should it be scheduled
+                K = max(Constants.MIN_K, sqrt(launchHistoryList.size.toDouble()).toInt())
+                LogHelper.getLogHelper(context)?.addLogToQueue("test-value of k=$K", LogHelper.LOG_LEVEL.INFO, context)
             } catch (ex: JSONException) {
                 Log.e("test-lhJSON", Log.getStackTraceString(ex))
                 FirebaseCrashlytics.getInstance().recordException(ex)
             }
         }
-        if (launchHistoryList.size > 0)
+        if (launchHistoryList.isNotEmpty())
             Log.v("test-launchHistoryLoad", "$launchHistoryList")
     }
 

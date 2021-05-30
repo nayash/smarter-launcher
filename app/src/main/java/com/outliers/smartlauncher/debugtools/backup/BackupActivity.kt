@@ -23,6 +23,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat.requestPermissions
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.lifecycle.MutableLiveData
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -88,12 +89,17 @@ class BackupActivity : AppCompatActivity(), FilesRVAdapter.FilesRVAdapterParent 
 
     override fun itemClicked(position: Int, path: String) {
         val file = File(path)
-        CoroutineScope(Dispatchers.IO).launch {
+        /*CoroutineScope(Dispatchers.IO).launch {
             val logStr = Utils.readFromFileAsString(this@BackupActivity, path)
             runOnUiThread {
                 logStr?.let { Utils.showAlertDialog(this@BackupActivity, file.name, it, {}, {}) }
             }
-        }
+        }*/
+        val intent = Intent(Intent.ACTION_VIEW)
+        intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+        val uri = FileProvider.getUriForFile(this, getString(R.string.smart_launcher_file_provider), file) //Uri.parse(file.absolutePath)
+        intent.setDataAndType(uri, "text/plain")
+        startActivity(intent)
     }
 
     override fun save(position: Int, path: String) {
