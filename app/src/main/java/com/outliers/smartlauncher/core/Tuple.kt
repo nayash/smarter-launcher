@@ -11,7 +11,7 @@
 package com.outliers.smartlauncher.core
 
 class Tuple<K, V>(key_: K, value_: V) {
-
+    // TODO use Kotlin Pair instead
     val key: K = key_
 
     var value: V = value_

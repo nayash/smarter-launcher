@@ -93,6 +93,8 @@ class SmartLauncherRoot private constructor(
         const val EPSILON = 0.1
         const val LOCATION_CACHE_LIFETIME_MILLIS = 5 * 60 * 1000 // 5 Mins
         const val HISTORY_MAX_SIZE = 2000
+        const val K = 15
+        val distanceType = Constants.DISTANCE_TYPE_COSINE // or euclidean
     }
 
     init {
@@ -103,6 +105,7 @@ class SmartLauncherRoot private constructor(
             context.registerReceiver(it, intentFilter)
         }
         loadState()
+        Log.v("test-SLRootInit", "thread-${Thread.currentThread().id}")
     }
 
     val allInstalledApps: ArrayList<AppModel>
@@ -172,8 +175,15 @@ class SmartLauncherRoot private constructor(
                 Log.v("test-lSeq", launchSequence.toString())
                 println("test-lSeq $launchSequence")
             } catch (ex: Exception) {
-                Toast.makeText(context, "Exception: ${ex.message}", Toast.LENGTH_LONG).show()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Exception: ${ex.message}", Toast.LENGTH_LONG).show()
+                }
                 FirebaseCrashlytics.getInstance().recordException(ex)
+                LogHelper.getLogHelper(context)?.addLogToQueue(
+                    "appLaunchedException test- ${Log.getStackTraceString(ex)}",
+                    LogHelper.LOG_LEVEL.ERROR,
+                    context
+                )
             }
         }
         return
@@ -184,7 +194,7 @@ class SmartLauncherRoot private constructor(
             val stime = System.currentTimeMillis()
             val launchVec = genAppLaunchVec(packageName)
             appSuggestions.clear()
-            appSuggestions.addAll(findKNN(launchVec, packageName))
+            appSuggestions.addAll(getAppPreds(launchVec, packageName))
             notifyNewSuggestions()
             // once all calculations and prediction is done, store the launchVec as history,
             // to use it for future predictions
@@ -202,39 +212,71 @@ class SmartLauncherRoot private constructor(
     }
 
     private suspend fun findKNN(
+        queryVec: ArrayRealVector,
+        dataset: LaunchHistoryList<String, ArrayRealVector>
+    ): MutableList<Pair<Tuple<String, ArrayRealVector>, Double>> {
+        val similarityMap: ArrayMap<Tuple<String, ArrayRealVector>, Double> = ArrayMap()
+        coroutineScope {
+            Log.v("test-findKNN", "starting loop")
+            for (tuple in dataset) {
+                if (distanceType.equals(Constants.DISTANCE_TYPE_COSINE)) {
+                    similarityMap[tuple] = tuple.value.cosine(queryVec)
+                } else {
+                    similarityMap[tuple] = 1 / (tuple.value.getDistance(queryVec) + EPSILON)
+                }
+            }
+            Log.v("test-findKNN", "loop end")
+        }
+        Log.v("test-findKNN", "result ${similarityMap.keys.size} pairs")
+        return similarityMap.toList().sortedBy { (k, v) -> -v }.subList(0, K).toMutableList()
+    }
+
+    private suspend fun getAppPreds(
         launchVec: ArrayRealVector,
-        packageName: String
+        launchPackageName: String
     ): ArrayList<AppModel> {
         val appPreds = ArrayList<AppModel>()
         coroutineScope {
-            var appScoresMap =
-                HashMap<String, Double>()  // appPackage to score mapping, to later apply toSrotedMap
+            Log.v("test-getAppPreds", "thread-${Thread.currentThread().id}")
+            var knn = findKNN(launchVec, launchHistoryList)
+            LogHelper.getLogHelper(context)?.addLogToQueue(
+                "test-getAppPreds- KNN result (${knn.size}) = ${
+                    knn.map {
+                        Pair(
+                            it.first.key,
+                            it.second
+                        )
+                    }
+                }", LogHelper.LOG_LEVEL.INFO, context
+            )
+            var appScoresMap = HashMap<String, Double>()
             var appFreq = HashMap<String, Int>()
-            for (tuple in launchHistoryList) {
+            for (pair in knn) {
+                val tuple = pair.first
+                val similarity = pair.second
                 val lVecHist = tuple.value
-                if (lVecHist != null) {
-                    Log.v("test-dimCheck", "${lVecHist.dimension}, ${launchVec.dimension}")
-                    // println("test-dimCheck ${lVecHist.dimension}, ${launchVec.dimension}")
-                    // val distance = lVecHist.getDistance(launchVec)  // Euclidean distance didn't work well
-                    // val similarity = 1 / (distance + EPSILON)
-                    val similarity = lVecHist.cosine(launchVec)
-                    var prevScore = appScoresMap[tuple.key] ?: 0.0
-                    prevScore += similarity  // this takes care of eqn 9
-                    appScoresMap[tuple.key] = prevScore
-                    appFreq[tuple.key] = (appFreq[tuple.key] ?: 0) + 1
-                }
+                // Log.v("test-dimCheck", "${lVecHist.dimension}, ${launchVec.dimension}")
+                appScoresMap[tuple.key] = (appScoresMap[tuple.key] ?: 0.0) + similarity
+                appFreq[tuple.key] = (appFreq[tuple.key] ?: 0) + 1
             }
 
-            for ((k, v) in appScoresMap) {
+            // to use avg score instead of sums
+            /*for ((k, v) in appScoresMap) {
                 appScoresMap[k] = v / (appFreq[k] ?: 1)
-            }
+            }*/
 
             var breaker = 0
             Log.v("test-appScores", appScoresMap.toString())
-            appScoresMap = appScoresMap.entries.sortedBy { -it.value }
-                .associate { it.toPair() } as HashMap<String, Double>
-            Log.v("test-appScoreSorted", appScoresMap.toString())
+            appScoresMap =
+                appScoresMap.toList().sortedBy { (k, v) -> -v }.toMap() as HashMap<String, Double>
+            LogHelper.getLogHelper(context)?.addLogToQueue(
+                "test-appScoreSorted-${appScoresMap.toString()}",
+                LogHelper.LOG_LEVEL.INFO,
+                context
+            )
             for ((packageName, score) in appScoresMap) {
+                if (packageName.equals(launchPackageName))
+                    continue
                 Utils.getAppByPackage(allInstalledApps, packageName)?.let { appPreds.add(it) }
                 breaker++
                 Log.v("test-app-predictions", "$packageName-->$score")
