@@ -27,9 +27,14 @@ class SmartLauncherApplication : Application() {
     var smartLauncherRoot: SmartLauncherRoot? = null
     val appListRefreshed: MutableLiveData<Boolean> = MutableLiveData()
 
+    companion object {
+        public lateinit var instance: SmartLauncherApplication
+    }
+
     override fun onCreate() {
         super.onCreate()
 
+        instance = this
         val intentFilterInstalled = IntentFilter()
         intentFilterInstalled.addAction(Intent.ACTION_PACKAGE_ADDED)
         intentFilterInstalled.addDataScheme("package")
@@ -42,25 +47,6 @@ class SmartLauncherApplication : Application() {
 
         Log.d("test-slApplication", "calling root")
         smartLauncherRoot = SmartLauncherRoot.getInstance(this)
-
-        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
-        Thread.setDefaultUncaughtExceptionHandler { thread, exception ->
-            val crashId: String =
-                UUID.randomUUID().toString()
-            smartLauncherRoot?.launcherPref?.edit()?.putBoolean("crash_restart", true)?.commit()
-            smartLauncherRoot?.launcherPref?.edit()?.putString("crash_id", crashId)?.commit()
-            LogHelper.getLogHelper(this)?.handleCrash(this, exception, crashId)
-            val test: Boolean =
-                smartLauncherRoot?.launcherPref?.getBoolean(
-                    "crash_restart",
-                    false
-                ) == true
-            Log.e("test", test.toString() + "")
-            defaultHandler.uncaughtException(
-                thread,
-                exception
-            )
-        }
     }
 
     override fun onTrimMemory(level: Int) {
@@ -80,6 +66,11 @@ class SmartLauncherApplication : Application() {
     }
 
     fun cleanAndBackUp() {
+        flushLogs()
+        smartLauncherRoot?.cleanUp()
+    }
+
+    fun flushLogs() {
         try {
             val pid = android.os.Process.myPid()
             val cmd = "logcat --pid=$pid -d -f ${LogHelper.getLogHelper(this)?.logFile?.absolutePath}"
@@ -87,7 +78,6 @@ class SmartLauncherApplication : Application() {
         }catch (ex:Exception){
             Log.e("test-cleanAndBackUp","failed to write logs: ${Log.getStackTraceString(ex)}")
         }
-        smartLauncherRoot?.cleanUp()
     }
 
     private val appInstallBR = object : BroadcastReceiver() {

@@ -44,6 +44,7 @@ import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sqrt
 
@@ -72,7 +73,7 @@ class SmartLauncherRoot private constructor(
     val logHelper = LogHelper.getLogHelper(context)
     var skip = false
     var currentLocation: Location? = null
-    var scope: CoroutineScope = CoroutineScope(Job() + dispatcher)
+    var scope: CoroutineScope = CoroutineScope(dispatcher) //CoroutineScope(Job() + dispatcher)
 
     companion object {
         private var outliersLauncherRoot: SmartLauncherRoot? = null
@@ -129,7 +130,7 @@ class SmartLauncherRoot private constructor(
                     Log.d("test-allInstalledApps", "added--${appModels.size}")
                     liveAppModels.postValue(appModels)
                 }
-                return appModels.toList() as ArrayList<AppModel>
+                return appModels.toList().toMutableList() as ArrayList<AppModel>
             }
         }
 
@@ -166,7 +167,7 @@ class SmartLauncherRoot private constructor(
             return
         scope.launch {
             try { // only to avoid crashes so that algorithm can be tested in real env. remove later and fix all crashes lazy bum
-                Log.v("test-lseq", "calling processAppSuggestion")
+                Log.v("test-AppLaunched", "calling processAppSuggestion for $packageName")
                 println("calling processAppSuggestion")
                 processAppSuggestion(packageName)
                 Log.v("test-lseq", "called processAppSuggestion")
@@ -230,7 +231,8 @@ class SmartLauncherRoot private constructor(
             Log.v("test-findKNN", "loop end")
         }
         Log.v("test-findKNN", "result ${similarityMap.keys.size} pairs")
-        return similarityMap.toList().sortedBy { (k, v) -> -v }.subList(0, K).toMutableList()
+        return similarityMap.toList().sortedBy { (k, v) -> -v }
+            .subList(0, min(K, similarityMap.size)).toMutableList()
     }
 
     private suspend fun getAppPreds(
@@ -251,7 +253,7 @@ class SmartLauncherRoot private constructor(
                     }
                 }", LogHelper.LOG_LEVEL.INFO, context
             )
-            var appScoresMap = HashMap<String, Double>()
+            var appScoresMap = mutableMapOf<String, Double>()
             var appFreq = HashMap<String, Int>()
             for (pair in knn) {
                 val tuple = pair.first
@@ -269,10 +271,11 @@ class SmartLauncherRoot private constructor(
 
             var breaker = 0
             Log.v("test-appScores", appScoresMap.toString())
+
             appScoresMap =
-                appScoresMap.toList().sortedBy { (k, v) -> -v }.toMap() as HashMap<String, Double>
+                appScoresMap.toList().sortedBy { (k, v) -> -v }.toMap().toMutableMap()
             LogHelper.getLogHelper(context)?.addLogToQueue(
-                "test-appScoreSorted-${appScoresMap.toString()}",
+                "test-appScoreSorted-${appScoresMap}",
                 LogHelper.LOG_LEVEL.INFO,
                 context
             )
@@ -286,7 +289,7 @@ class SmartLauncherRoot private constructor(
                     break
             }
         }
-        println("findKNN return ${appPreds.size}, $appPreds")
+        println("getAppPreds return ${appPreds.size}, $appPreds")
         return appPreds
     }
 
@@ -629,7 +632,8 @@ class SmartLauncherRoot private constructor(
                 Log.v("test-launchHistoryLoad", "${temp.length()}, ${launchHistoryList.size}")
                 cleanUpHistory()  // TODO review if this is correct place to perform clean up or should it be scheduled
                 K = max(Constants.MIN_K, sqrt(launchHistoryList.size.toDouble()).toInt())
-                LogHelper.getLogHelper(context)?.addLogToQueue("test-value of k=$K", LogHelper.LOG_LEVEL.INFO, context)
+                LogHelper.getLogHelper(context)
+                    ?.addLogToQueue("test-value of k=$K", LogHelper.LOG_LEVEL.INFO, context)
             } catch (ex: JSONException) {
                 Log.e("test-lhJSON", Log.getStackTraceString(ex))
                 FirebaseCrashlytics.getInstance().recordException(ex)
