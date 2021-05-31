@@ -28,7 +28,7 @@ class SmartLauncherApplication : Application() {
     val appListRefreshed: MutableLiveData<Boolean> = MutableLiveData()
 
     companion object {
-        public lateinit var instance: SmartLauncherApplication
+        lateinit var instance: SmartLauncherApplication
     }
 
     override fun onCreate() {
