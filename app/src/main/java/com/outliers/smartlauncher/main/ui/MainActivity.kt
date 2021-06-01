@@ -57,6 +57,7 @@ import com.outliers.smartlauncher.main.viewmodel.MainViewModel
 import com.outliers.smartlauncher.main.viewmodel.MainViewModelFactory
 import com.outliers.smartlauncher.models.AppModel
 import com.outliers.smartlauncher.utils.Utils
+import kotlinx.android.synthetic.main.activity_main.view.*
 import java.util.*
 
 
@@ -76,7 +77,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
 
-        val vmFactory = MainViewModelFactory(application as SmartLauncherApplication, this)
+        val vmFactory = MainViewModelFactory(SmartLauncherApplication.instance, this)
         viewModel = ViewModelProviders.of(this, vmFactory).get(MainViewModel::class.java)
 
         etSearch = binding.appListSheet.findViewById(R.id.et_search)
@@ -145,7 +146,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
 
             override fun onSlide(bottomSheet: View, slideOffset: Float) {
                 // binding.rlPredApps.alpha = 1 - slideOffset
-                binding.rvSuggestions.alpha = 1 - slideOffset
+                binding.homeContent.alpha = 1 - slideOffset
             }
         })
 
@@ -157,7 +158,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
                     ", " + Utils.getBatteryLevel(this)
         )
 
-        (application as SmartLauncherApplication).appListRefreshed.let { it ->
+        (SmartLauncherApplication.instance).appListRefreshed.let { it ->
             it.observe(this, { bool ->
                 if (bool) {
                     adapter?.notifyDataSetChanged()
@@ -467,6 +468,15 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
             binding.rvSuggestions.adapter = appPredAdapter
         }
         appPredAdapter?.notifyDataSetChanged()
+
+        if (apps.isEmpty()) {
+            binding.rlNoPreds.visibility = View.VISIBLE
+            binding.rvSuggestions.visibility = View.GONE
+            binding.rlNoPreds.tv_head.setText(getString(R.string.title_no_app_pred, getString(R.string.app_display_name)))
+        } else {
+            binding.rlNoPreds.visibility = View.GONE
+            binding.rvSuggestions.visibility = View.VISIBLE
+        }
     }
 
     override fun onClick(v: View?) {

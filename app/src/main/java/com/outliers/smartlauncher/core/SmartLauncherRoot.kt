@@ -648,8 +648,10 @@ class SmartLauncherRoot private constructor(
             Utils.getAppDataFolderInternal(context),
             Constants.APP_SUGGESTIONS_SAVE_FILE
         )
-        if (!file.exists())
+        if (!file.exists()) {
+            appSuggestionsLiveData.postValue(appSuggestions)
             return
+        }
         // val temp = Utils.readFromFile<ArrayList<String>>(context, file.absolutePath)
         withContext(dispatcher) {
             try {

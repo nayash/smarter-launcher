@@ -9,6 +9,7 @@
   -->
 
 <resources>
+    <string name="app_display_name">Smart Launcher</string>
     <string name="app_name">SmartLauncher</string>
     <string name="app_not_found">App not found</string>
     <string name="need_location_permission">Location Permission Needed</string>
@@ -28,4 +29,6 @@
     <string name="show_data_files">Show data files</string>
     <string name="all_files_permission">Try giving files permission of type "All management of all files"</string>
     <string name="restore_files">Restore previous data</string>
+    <string name="title_no_app_pred">%s is learning</string>
+    <string name="info_no_app_pred">Please start using your apps by dragging up the arrow below. With time we will learn your usage pattern and show predictions here.</string>
 </resources>
