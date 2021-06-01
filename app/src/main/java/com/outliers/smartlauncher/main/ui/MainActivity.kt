@@ -58,6 +58,8 @@ import com.outliers.smartlauncher.main.viewmodel.MainViewModelFactory
 import com.outliers.smartlauncher.models.AppModel
 import com.outliers.smartlauncher.utils.Utils
 import kotlinx.android.synthetic.main.activity_main.view.*
+import kotlinx.android.synthetic.main.app_list_sheet.view.*
+import kotlinx.android.synthetic.main.item_app.view.*
 import java.util.*
 
 
@@ -80,9 +82,9 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         val vmFactory = MainViewModelFactory(SmartLauncherApplication.instance, this)
         viewModel = ViewModelProviders.of(this, vmFactory).get(MainViewModel::class.java)
 
-        etSearch = binding.appListSheet.findViewById(R.id.et_search)
-        val ivSearchSearch = binding.appListSheet.findViewById<ImageView>(R.id.iv_right_search)
-        val ivSearchClose = binding.appListSheet.findViewById<ImageView>(R.id.iv_right_cross)
+        etSearch = binding.appListSheet.et_search
+        val ivSearchSearch = binding.appListSheet.iv_right_search
+        val ivSearchClose = binding.appListSheet.iv_right_cross
         ivSearchClose.setOnClickListener(this)
         etSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
@@ -107,8 +109,8 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
             }
         })
 
-        val imageView = binding.appListSheet.findViewById<ImageView>(R.id.iv_expand)
-        val rvApps = binding.appListSheet.findViewById<RecyclerView>(R.id.rv_apps)
+        val imageView = binding.appListSheet.iv_expand
+        val rvApps = binding.appListSheet.rv_apps
         adapter = AppsRVAdapter(viewModel.appList, this, this)
         val appsPerRow = resources.getInteger(R.integer.app_per_row)
         rvApps.layoutManager = GridLayoutManager(this, appsPerRow)
@@ -413,8 +415,8 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
                 tableRow.weightSum = appsPerRow.toFloat()
                 tableRow.layoutParams = layoutParams
             }
-            appView.findViewById<ImageView>(R.id.iv_app).setImageDrawable(appModel.appIcon)
-            appView.findViewById<TextView>(R.id.tv_app_name).visibility = View.GONE
+            appView.iv_app.setImageDrawable(appModel.appIcon)
+            appView.tv_app_name.visibility = View.GONE
             val trLayoutParams = TableRow.LayoutParams(
                 TableRow.LayoutParams.MATCH_PARENT,
                 TableRow.LayoutParams.WRAP_CONTENT, 1f
