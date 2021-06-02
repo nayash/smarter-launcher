@@ -43,10 +43,7 @@ import java.io.File
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
-import kotlin.math.max
-import kotlin.math.min
-import kotlin.math.pow
-import kotlin.math.sqrt
+import kotlin.math.*
 
 class SmartLauncherRoot private constructor(
     val context: Context,
@@ -91,7 +88,7 @@ class SmartLauncherRoot private constructor(
 
         const val WINDOW_SIZE = 3
         const val APP_SUGGESTION_COUNT = 8
-        const val EXPLICIT_FEATURES_COUNT = 11
+        const val EXPLICIT_FEATURES_COUNT = 12
         const val APP_USAGE_DECAY_RATE = 0.5
         const val EPSILON = 0.1
         const val LOCATION_CACHE_LIFETIME_MILLIS = 5 * 60 * 1000 // 5 Mins
@@ -305,8 +302,9 @@ class SmartLauncherRoot private constructor(
             Log.v("test-genLVec", launchVec.dimension.toString())
             var featureIdx = 0
             launchVec.setEntry(featureIdx++, Utils.getDayOfMonth() / 31.0)
-            val hourOfDay = Utils.getHourOfDay()
-            launchVec.setEntry(featureIdx++, hourOfDay / 24.0)
+            val hourOfDay = Utils.getHourOfDay() / 24.0
+            launchVec.setEntry(featureIdx++, 0.5 + 0.5 * sin(2 * Math.PI * hourOfDay))
+            launchVec.setEntry(featureIdx++, 0.5 + 0.5 * cos(2 * Math.PI * hourOfDay))
 
             val diff = System.currentTimeMillis() - (currentLocation?.time ?: 0)
             Log.v("test-cacheDiff", "$diff")

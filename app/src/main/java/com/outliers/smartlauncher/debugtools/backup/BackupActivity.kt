@@ -89,12 +89,7 @@ class BackupActivity : AppCompatActivity(), FilesRVAdapter.FilesRVAdapterParent 
 
     override fun itemClicked(position: Int, path: String) {
         val file = File(path)
-        /*CoroutineScope(Dispatchers.IO).launch {
-            val logStr = Utils.readFromFileAsString(this@BackupActivity, path)
-            runOnUiThread {
-                logStr?.let { Utils.showAlertDialog(this@BackupActivity, file.name, it, {}, {}) }
-            }
-        }*/
+
         val intent = Intent(Intent.ACTION_VIEW)
         intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
         val uri = FileProvider.getUriForFile(this, getString(R.string.smart_launcher_file_provider), file) //Uri.parse(file.absolutePath)
