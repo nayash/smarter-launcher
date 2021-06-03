@@ -5,6 +5,10 @@ See Smarter Launcher in action:
 
 https://user-images.githubusercontent.com/25876491/120698886-492da500-c4cd-11eb-8842-fb6aea1207d4.mp4
 
+https://github.com/nayash/smarter-launcher/blob/master/sample-videos/Screen_Recording_20210531-132225_SmartLauncher_woep.mp4
+
+https://github.com/nayash/smarter-launcher/blob/master/sample-videos/Screen_Recording_20210531-132347_SmartLauncher-wep.mp4
+
 ## Cedits
 * The algorithm was introduced in the paper: https://jit.ndhu.edu.tw/article/viewFile/2061/2073
 * App logo is designed by combining the logos at FlatIcons. Links to designers' page:
