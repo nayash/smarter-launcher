@@ -601,6 +601,8 @@ class SmartLauncherRoot private constructor(
 
     suspend fun loadLaunchHistory() {
         // TODO handle the scenario where saved file launchVec size is different from current installed apps size
+        // one option could be save a list of installed apps along with history and on loading check
+        // which app is missing or extra
         val file = File(
             Utils.getAppDataFolderInternal(context),
             Constants.LAUNCH_HISTORY_SAVE_FILE
@@ -702,6 +704,9 @@ class SmartLauncherRoot private constructor(
                         )
                     }
                 }
+
+                FirebaseCrashlytics.getInstance()
+                    .log("History CleanUp done: ${launchHistoryList.size}")
             }
         }
     }
