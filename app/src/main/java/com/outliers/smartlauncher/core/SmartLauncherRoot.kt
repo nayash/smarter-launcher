@@ -339,6 +339,7 @@ class SmartLauncherRoot private constructor(
                         ).addOnSuccessListener { location ->
                             Log.d("test-location", location?.toString() + ",")
                             location?.let {
+                                // TODO normalization of coordinates not correct. lat range [-90, 90] & lng [-180, 180]
                                 launchVec.setEntry(featureIdx++, location.latitude / 360.0)
                                 launchVec.setEntry(featureIdx++, location.longitude / 360.0)
                                 Log.v("test-location", "offering 0")
@@ -350,6 +351,7 @@ class SmartLauncherRoot private constructor(
                 }
             } else {
                 currentLocation?.let {
+                    // TODO normalization of coordinates not correct. lat range [-90, 90] & lng [-180, 180]
                     launchVec.setEntry(featureIdx++, it.latitude / 360.0)
                     launchVec.setEntry(featureIdx++, it.longitude / 360.0)
                     Log.v("test-location", "using cached loc: $currentLocation")
