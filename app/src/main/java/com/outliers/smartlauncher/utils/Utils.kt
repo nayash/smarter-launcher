@@ -448,4 +448,8 @@ object Utils {
     fun getFileNameFromPath(path: String): String {
         return path.split(File.separator).last()
     }
+
+    fun minMaxScale(num: Double, min: Double, max: Double, newMin: Double, newMax: Double): Double {
+        return ((num - min) / (max - min) * (newMax - newMin) + newMin)
+    }
 }

@@ -32,6 +32,7 @@ import androidx.lifecycle.MutableLiveData
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
+import com.google.firebase.FirebaseApp
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.gson.Gson
 import com.outliers.smartlauncher.consts.Constants
@@ -702,20 +703,25 @@ class SmartLauncherRoot private constructor(
                 }
                 /*counterMap = counterMap.entries.sortedBy { -it.value }
                     .associate { it.toPair() } as ArrayMap<String, Int>*/
-                val counterMap1 = counterMap.toList().sortedBy { (key, value) -> value }.toMap()
-                Log.v("test-counter", "$counterMap1, threshold=${0.01 * HISTORY_MAX_SIZE}")
-                for ((packageName, frequency) in counterMap1) {
+                counterMap.toList().sortedBy { (key, value) -> value }
+                    .toMap(counterMap)
+                Log.v("test-counter", "$counterMap, threshold=${0.01 * HISTORY_MAX_SIZE}")
+                println(("test-counter $counterMap, threshold=${0.01 * HISTORY_MAX_SIZE}"))
+                for ((packageName, frequency) in counterMap) {
                     if (frequency < 0.01 * HISTORY_MAX_SIZE) { // frequency less that 1% of MAX size
                         launchHistoryList.removeEntriesWithKey(packageName)
                         Log.v(
                             "test-cleanUpHistory",
                             "deleted package: $packageName with $frequency launches"
                         )
+                        println("test-cleanUpHistory deleted package: $packageName with $frequency launches")
+                        println("test-launcherSize ${launchHistoryList.size}")
                     }
                 }
 
-                FirebaseCrashlytics.getInstance()
-                    .log("History CleanUp done: ${launchHistoryList.size}")
+                if (FirebaseApp.getApps(context).isNotEmpty())
+                    FirebaseCrashlytics.getInstance()
+                        .log("History CleanUp done: ${launchHistoryList.size}")
             }
         }
     }

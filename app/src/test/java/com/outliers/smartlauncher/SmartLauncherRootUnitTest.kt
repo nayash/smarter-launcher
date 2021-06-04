@@ -23,7 +23,11 @@ import androidx.collection.ArrayMap
 import androidx.test.core.app.ApplicationProvider
 import com.outliers.smartlauncher.core.SmartLauncherRoot
 import com.outliers.smartlauncher.models.AppModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import org.apache.commons.math3.linear.ArrayRealVector
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -68,6 +72,12 @@ class SmartLauncherRootUnitTest {
         }
         random = Random(999)
         println("test setup done")
+    }
+
+    @Test
+    fun singletonTest() {
+        val slRoot2 = SmartLauncherRoot.getInstance(context)
+        assert(slRoot2 == slRoot)
     }
 
     @Test
@@ -213,8 +223,38 @@ class SmartLauncherRootUnitTest {
     }
 
     @Test
-    fun cleanUpHistoryTest() {
+    fun cleanUpHistoryTest_1occurrence() {
+        val appSize = slRoot?.allInstalledApps?.size ?: APP_SIZE
+        val historyList = slRoot?.launchHistoryList
+        // mock one app launch at beginning or first half of history to mimic less freq used app in history
+        historyList?.add(slRoot!!.allInstalledApps[1].packageName, ArrayRealVector(appSize))
+        for (i in 0 until SmartLauncherRoot.HISTORY_MAX_SIZE) {
+            historyList?.add(slRoot!!.allInstalledApps[0].packageName, ArrayRealVector(appSize))
+        }
+        println("test1 ${historyList?.size}")
+        assert(historyList?.size == SmartLauncherRoot.HISTORY_MAX_SIZE+1)
+        CoroutineScope(coroutinesTestRule.testDispatcher).launch { slRoot?.cleanUpHistory() }
+        println("test2 ${historyList?.size}")
+        assert(historyList?.size == SmartLauncherRoot.HISTORY_MAX_SIZE)
+    }
 
+    @Test
+    fun cleanUpHistoryTest_19occurrence() {
+        val appSize = slRoot?.allInstalledApps?.size ?: APP_SIZE
+        val historyList = slRoot?.launchHistoryList
+        val max = SmartLauncherRoot.HISTORY_MAX_SIZE
+        val maxDeletableCount = (0.01*max-1).toInt()
+        // mock one app launch at beginning or first half of history to mimic less freq used app in history
+        for (i in 0 until maxDeletableCount)
+            historyList?.add(slRoot!!.allInstalledApps[1].packageName, ArrayRealVector(appSize))
+        while (historyList?.size!! < max+1) {
+            historyList?.add(slRoot!!.allInstalledApps[0].packageName, ArrayRealVector(appSize))
+        }
+        println("test1 ${historyList?.size}")
+        assert(historyList?.size == SmartLauncherRoot.HISTORY_MAX_SIZE+1)
+        CoroutineScope(coroutinesTestRule.testDispatcher).launch { slRoot?.cleanUpHistory() }
+        println("test2 ${historyList?.size}")
+        assert(historyList?.size == max+1-maxDeletableCount)
     }
 
     @After
