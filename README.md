@@ -7,6 +7,7 @@ See Smarter Launcher in action:
 
 ![woep_small](https://user-images.githubusercontent.com/25876491/120836455-37a6d480-c583-11eb-863f-dc38d979d03a.gif)
 
+Note: The wallpaper is not part of the launcher. It's a Live Wallpaper I had developed last year. It's on PlayStore ![Matrix LiveWallpaper](https://play.google.com/store/apps/details?id=com.outliers.matrixlivewallpaper).
 
 ## Cedits
 * The algorithm was introduced in the paper: https://jit.ndhu.edu.tw/article/viewFile/2061/2073
