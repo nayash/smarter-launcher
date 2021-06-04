@@ -142,7 +142,7 @@ class SmartLauncherRoot private constructor(
     fun sortApplicationsByName(appModels: MutableList<AppModel>) {
         // Collections.sort(appModels) { (appName), (appName) -> appName.compareTo(appName) }
         synchronized(appModels) {
-            appModels.sortBy { it.appName.toLowerCase() }
+            appModels.sortBy { it.appName.toLowerCase(Locale.getDefault()) }
         }
     }
 
@@ -247,7 +247,7 @@ class SmartLauncherRoot private constructor(
         val appPreds = ArrayList<AppModel>()
         coroutineScope {
             Log.v("test-getAppPreds", "thread-${Thread.currentThread().id}")
-            var knn = findKNN(launchVec, launchHistoryList)
+            val knn = findKNN(launchVec, launchHistoryList)
             LogHelper.getLogHelper(context)?.addLogToQueue(
                 "test-getAppPreds- KNN result (${knn.size}) = ${
                     knn.map {
@@ -259,11 +259,11 @@ class SmartLauncherRoot private constructor(
                 }", LogHelper.LOG_LEVEL.INFO, context
             )
             var appScoresMap = mutableMapOf<String, Double>()
-            var appFreq = HashMap<String, Int>()
+            val appFreq = HashMap<String, Int>()
             for (pair in knn) {
                 val tuple = pair.first
                 val similarity = pair.second
-                val lVecHist = tuple.value
+                // val lVecHist = tuple.value
                 // Log.v("test-dimCheck", "${lVecHist.dimension}, ${launchVec.dimension}")
                 appScoresMap[tuple.key] = (appScoresMap[tuple.key] ?: 0.0) + similarity
                 appFreq[tuple.key] = (appFreq[tuple.key] ?: 0) + 1
@@ -340,9 +340,14 @@ class SmartLauncherRoot private constructor(
                         ).addOnSuccessListener { location ->
                             Log.d("test-location", location?.toString() + ",")
                             location?.let {
-                                // TODO normalization of coordinates not correct. lat range [-90, 90] & lng [-180, 180]
-                                launchVec.setEntry(featureIdx++, location.latitude / 360.0)
-                                launchVec.setEntry(featureIdx++, location.longitude / 360.0)
+                                launchVec.setEntry(
+                                    featureIdx++,
+                                    Utils.minMaxScale(location.latitude, -90.0, 90.0, 0.0, 1.0)
+                                )
+                                launchVec.setEntry(
+                                    featureIdx++,
+                                    Utils.minMaxScale(location.longitude, -180.0, 180.0, 0.0, 1.0)
+                                )
                                 Log.v("test-location", "offering 0")
                             }
                             channel.offer(0)
@@ -352,9 +357,14 @@ class SmartLauncherRoot private constructor(
                 }
             } else {
                 currentLocation?.let {
-                    // TODO normalization of coordinates not correct. lat range [-90, 90] & lng [-180, 180]
-                    launchVec.setEntry(featureIdx++, it.latitude / 360.0)
-                    launchVec.setEntry(featureIdx++, it.longitude / 360.0)
+                    launchVec.setEntry(
+                        featureIdx++,
+                        Utils.minMaxScale(it.latitude, -90.0, 90.0, 0.0, 1.0)
+                    )
+                    launchVec.setEntry(
+                        featureIdx++,
+                        Utils.minMaxScale(it.longitude, -180.0, 180.0, 0.0, 1.0)
+                    )
                     Log.v("test-location", "using cached loc: $currentLocation")
                 }
             }
@@ -696,7 +706,7 @@ class SmartLauncherRoot private constructor(
             Log.v("test-hist", "$launchHistoryList")
             coroutineScope {
                 val topHalf: Int = launchHistoryList.size / 2
-                var counterMap = ArrayMap<String, Int>() // package to frequency map
+                val counterMap = ArrayMap<String, Int>() // package to frequency map
                 for (i in 0 until topHalf) {  // look into the top oldest records only
                     val packageName = launchHistoryList[i].key
                     counterMap[packageName] = counterMap.getOrDefault(packageName, 0) + 1
