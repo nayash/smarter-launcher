@@ -9,6 +9,8 @@ network status etc) and represents them as a real valued vector every time an ap
 vectors are stored as "history". On every new app launch KNN (K Nearest Neighbour) is performed to find
 the closest vectors and corresponding apps. The top most similar apps are suggested to the user.  
 
+More details are available on ![my blog here](https://asutoshnayak.medium.com/building-android-smart-launcher-with-machine-learning-929dda7f107)
+
 See Smarter Launcher in action:
 
 ![wep_small](https://user-images.githubusercontent.com/25876491/120836299-0cbc8080-c583-11eb-8c4a-b951b2998d27.gif)
