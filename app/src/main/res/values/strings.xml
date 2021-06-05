@@ -1,0 +1,41 @@
+<!--
+  ~     Copyright (C) 2021.  Asutosh Nayak (nayak.asutosh@ymail.com)
+  ~
+  ~     This program is free software: you can redistribute it and/or modify
+  ~     it under the terms of the GNU General Public License as published by
+  ~     the Free Software Foundation, either version 3 of the License, or
+  ~     (at your option) any later version.
+  ~
+  ~     This program is distributed in the hope that it will be useful,
+  ~     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~     GNU General Public License for more details.
+  ~
+  ~     You should have received a copy of the GNU General Public License
+  ~     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  -->
+
+<resources>
+    <string name="app_display_name">Smart Launcher</string>
+    <string name="app_name">SmartLauncher</string>
+    <string name="app_not_found">App not found</string>
+    <string name="need_location_permission">Location Permission Needed</string>
+    <string name="location_permission_rationale">Location permission is needed to predict next app usage based on location</string>
+    <string name="location_denied_consequence">Location won\'t be used to learn patterns. Results may not be optimal</string>
+    <string name="write_denied_consequence">File save/replacing need external storage read/write permission</string>
+    <string name="location_disabled">Location is disabled. Prediction may be inaccurate</string>
+
+    <string name="smart_launcher_file_provider">com.outliers.smartlauncher.fileprovider</string>
+
+    <string name="issue_mail_template">Hi User,\n\n Please briefly describe the issue you are facing:\n</string>
+    <string name="sl_file_provider">com.outliers.fileprovider</string>
+    <string name="choose_share_app">Choose an app to share with</string>
+    <string name="app_details">App details</string>
+    <string name="default_launcher_prompt">Please make SmartLauncher your default</string>
+    <string name="show_logs">Show logs</string>
+    <string name="show_data_files">Show data files</string>
+    <string name="all_files_permission">Try giving files permission of type "All management of all files"</string>
+    <string name="restore_files">Restore previous data</string>
+    <string name="title_no_app_pred">%s is learning</string>
+    <string name="info_no_app_pred">Please start using your apps by dragging up the arrow below. With time we will learn your usage pattern and show predictions here.</string>
+</resources>
