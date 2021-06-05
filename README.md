@@ -19,6 +19,12 @@ See Smarter Launcher in action:
 
 Note: The wallpaper is not part of the launcher. It's a Live Wallpaper I had developed last year. It's on PlayStore ![Matrix LiveWallpaper](https://play.google.com/store/apps/details?id=com.outliers.matrixlivewallpaper).
 
+## TODO (priority items)
+* Support for adding widgets
+* Restoring historical data in case of reinstall even if apps list has changed. (normal case where the apps are same is already supported)
+* Large Margin Nearest Neighbour algorithm implementation
+* capture app launches from "recent tasks" list (will support it only if I find a legitimate way supported by Android)
+
 ## Credits
 * The algorithm was introduced in the paper: https://jit.ndhu.edu.tw/article/viewFile/2061/2073
 * App logo is designed by combining the logos from FlatIcons. Links to authors' page:
