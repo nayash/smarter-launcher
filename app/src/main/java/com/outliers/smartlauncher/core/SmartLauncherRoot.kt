@@ -259,14 +259,14 @@ class SmartLauncherRoot private constructor(
                 }", LogHelper.LOG_LEVEL.INFO, context
             )
             var appScoresMap = mutableMapOf<String, Double>()
-            val appFreq = HashMap<String, Int>()
+            // val appFreq = HashMap<String, Int>()
             for (pair in knn) {
                 val tuple = pair.first
                 val similarity = pair.second
                 // val lVecHist = tuple.value
                 // Log.v("test-dimCheck", "${lVecHist.dimension}, ${launchVec.dimension}")
                 appScoresMap[tuple.key] = (appScoresMap[tuple.key] ?: 0.0) + similarity
-                appFreq[tuple.key] = (appFreq[tuple.key] ?: 0) + 1
+                // appFreq[tuple.key] = (appFreq[tuple.key] ?: 0) + 1
             }
 
             // to use avg score instead of sums
