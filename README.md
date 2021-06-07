@@ -1,4 +1,4 @@
-# smarter-launcher (WIP)
+# smarter-launcher (WIP | Not production ready)
 An Android launcher which understands your usage patterns and updates the Home screen with a list of 
 apps which are most likely to be used by you next. This project uses the algorithm introduced in 
 the paper titled "Mobile App Recommendation with Sequential App Usage Behavior Tracking" (link below).
