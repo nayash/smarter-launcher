@@ -46,7 +46,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
@@ -231,13 +230,22 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
             val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_HOME)
             startActivityForResult(intent, 1)
         } else {
-            /*val intent = Intent()
-            intent.action = Intent.ACTION_MAIN
-            intent.addCategory(Intent.CATEGORY_HOME)
-            startActivity(Intent.createChooser(intent, getString(R.string.default_launcher_prompt)))*/
             // TODO show dialog prompt and then perform this action
-            val intent = Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
-            startActivity(intent)
+            try {
+                val intent = Intent()
+                intent.action = Intent.ACTION_MAIN
+                intent.addCategory(Intent.CATEGORY_HOME)
+                startActivity(
+                    Intent.createChooser(
+                        intent,
+                        getString(R.string.default_launcher_prompt)
+                    )
+                )
+                /*val intent = Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
+            startActivity(intent)*/
+            } catch (ex: ActivityNotFoundException) {
+                Toast.makeText(this, getString(R.string.set_app_default), Toast.LENGTH_LONG).show()
+            }
         }
     }
 
@@ -481,7 +489,12 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         if (apps.isEmpty()) {
             binding.rlNoPreds.visibility = View.VISIBLE
             binding.rvSuggestions.visibility = View.GONE
-            binding.rlNoPreds.tv_head.setText(getString(R.string.title_no_app_pred, getString(R.string.app_display_name)))
+            binding.rlNoPreds.tv_head.setText(
+                getString(
+                    R.string.title_no_app_pred,
+                    getString(R.string.app_display_name)
+                )
+            )
         } else {
             binding.rlNoPreds.visibility = View.GONE
             binding.rvSuggestions.visibility = View.VISIBLE
