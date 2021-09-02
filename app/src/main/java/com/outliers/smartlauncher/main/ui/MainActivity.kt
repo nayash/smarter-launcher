@@ -229,13 +229,22 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
             val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_HOME)
             startActivityForResult(intent, 1)
         } else {
-            /*val intent = Intent()
-            intent.action = Intent.ACTION_MAIN
-            intent.addCategory(Intent.CATEGORY_HOME)
-            startActivity(Intent.createChooser(intent, getString(R.string.default_launcher_prompt)))*/
             // TODO show dialog prompt and then perform this action
-            val intent = Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
-            startActivity(intent)
+            try {
+                val intent = Intent()
+                intent.action = Intent.ACTION_MAIN
+                intent.addCategory(Intent.CATEGORY_HOME)
+                startActivity(
+                    Intent.createChooser(
+                        intent,
+                        getString(R.string.default_launcher_prompt)
+                    )
+                )
+                /*val intent = Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
+            startActivity(intent)*/
+            } catch (ex: ActivityNotFoundException) {
+                Toast.makeText(this, getString(R.string.set_app_default), Toast.LENGTH_LONG).show()
+            }
         }
     }
 
