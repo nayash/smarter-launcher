@@ -96,7 +96,7 @@ class SmartLauncherRoot private constructor(
 
         const val WINDOW_SIZE = 3
         const val APP_SUGGESTION_COUNT = 8
-        const val EXPLICIT_FEATURES_COUNT = 12
+        const val EXPLICIT_FEATURES_COUNT = 13
         const val APP_USAGE_DECAY_RATE = 0.5
         const val EPSILON = 0.1
         const val LOCATION_CACHE_LIFETIME_MILLIS = 5 * 60 * 1000 // 5 Mins
@@ -228,7 +228,7 @@ class SmartLauncherRoot private constructor(
             Log.v("test-findKNN", "starting loop")
             for (tuple in dataset) {
                 if (distanceType.equals(Constants.DISTANCE_TYPE_COSINE)) {
-                    similarityMap[tuple] = tuple.value.cosine(queryVec)
+                    similarityMap[tuple] = tuple.value.cosine(queryVec) // problem
                 } else {
                     similarityMap[tuple] = 1 / (tuple.value.getDistance(queryVec) + EPSILON)
                 }
@@ -383,7 +383,7 @@ class SmartLauncherRoot private constructor(
             launchVec.setEntry(featureIdx++, isMobileData)
             val isWifi: Double = if (Utils.isWifiConnected(context)) 1.0 else 0.0
             launchVec.setEntry(featureIdx++, isWifi)
-            Utils.getBatteryLevel(context)?.div(100.0)?.let { launchVec.setEntry(10, it) }
+            Utils.getBatteryLevel(context)?.div(100.0)?.let { launchVec.setEntry(featureIdx, it) }
 
             for ((i, appPackage) in launchSequence.asReversed().withIndex()) {
                 /**
@@ -433,6 +433,8 @@ class SmartLauncherRoot private constructor(
                             "installed package prob: $packageName," +
                                     " old_size: $oldSize, new_size: ${allInstalledApps.size}"
                         )
+                        Log.d("test-installedPkgProb","$packageName," +
+                                " old_size: $oldSize, new_size: ${allInstalledApps.size}")
                         FirebaseCrashlytics.getInstance()
                             .recordException(Exception("Got app_install event but size is same or package exists"))
                     } else {
@@ -453,6 +455,8 @@ class SmartLauncherRoot private constructor(
                             "uninstalled package prob: $packageName," +
                                     " old_size: $oldSize, new_size: ${allInstalledApps.size}"
                         )
+                        Log.d("uninstalledPkgProb","$packageName," +
+                                " old_size: $oldSize, new_size: ${allInstalledApps.size}")
                         FirebaseCrashlytics.getInstance()
                             .recordException(Exception("Got app_uninstall event but size is same or package exists"))
                     } else {
@@ -543,7 +547,7 @@ class SmartLauncherRoot private constructor(
             loadPreds()
 
             LogHelper.getLogHelper(context)?.addLogToQueue(
-                "loadState called: " +
+                "test-loadState called: " +
                         "launchSeq=${launchSequence.size}" +
                         ", histSize=${launchHistoryList.size}, preds=${appSuggestions.size}",
                 LogHelper.LOG_LEVEL.INFO, "SLRoot"

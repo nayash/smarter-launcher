@@ -46,7 +46,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
@@ -56,6 +55,7 @@ import com.outliers.smartlauncher.BuildConfig
 import com.outliers.smartlauncher.R
 import com.outliers.smartlauncher.core.SmartLauncherApplication
 import com.outliers.smartlauncher.databinding.ActivityMainBinding
+import com.outliers.smartlauncher.databinding.ItemAppBinding
 import com.outliers.smartlauncher.debugtools.backup.BackupActivity
 import com.outliers.smartlauncher.debugtools.loghelper.LogsActivity
 import com.outliers.smartlauncher.main.adapter.AppsRVAdapter
@@ -64,9 +64,6 @@ import com.outliers.smartlauncher.main.viewmodel.MainViewModel
 import com.outliers.smartlauncher.main.viewmodel.MainViewModelFactory
 import com.outliers.smartlauncher.models.AppModel
 import com.outliers.smartlauncher.utils.Utils
-import kotlinx.android.synthetic.main.activity_main.view.*
-import kotlinx.android.synthetic.main.app_list_sheet.view.*
-import kotlinx.android.synthetic.main.item_app.view.*
 import java.util.*
 
 
@@ -76,7 +73,8 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
     val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
     lateinit var viewModel: MainViewModel
     var adapter: AppsRVAdapter? = null
-    val sheetBehavior by lazy { BottomSheetBehavior.from(binding.appListSheet) }
+    private lateinit var sheetBehavior: BottomSheetBehavior<View>
+    // val sheetBehavior by lazy { BottomSheetBehavior.from(binding.appListSheet) }
     val appPredViewGroup by lazy { binding.rlPredApps }
     lateinit var etSearch: EditText
     var appPredAdapter: AppsRVAdapter? = null
@@ -85,13 +83,13 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
-
+        sheetBehavior = BottomSheetBehavior.from(binding.appListSheet.root)
         val vmFactory = MainViewModelFactory(SmartLauncherApplication.instance, this)
         viewModel = ViewModelProviders.of(this, vmFactory).get(MainViewModel::class.java)
 
-        etSearch = binding.appListSheet.et_search
-        val ivSearchSearch = binding.appListSheet.iv_right_search
-        val ivSearchClose = binding.appListSheet.iv_right_cross
+        etSearch = binding.appListSheet.etSearch
+        val ivSearchSearch = binding.appListSheet.ivRightSearch
+        val ivSearchClose = binding.appListSheet.ivRightCross
         ivSearchClose.setOnClickListener(this)
         etSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
@@ -116,8 +114,8 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
             }
         })
 
-        val imageView = binding.appListSheet.iv_expand
-        val rvApps = binding.appListSheet.rv_apps
+        val imageView = binding.appListSheet.ivExpand
+        val rvApps = binding.appListSheet.rvApps
         adapter = AppsRVAdapter(viewModel.appList, this, this)
         val appsPerRow = resources.getInteger(R.integer.app_per_row)
         rvApps.layoutManager = GridLayoutManager(this, appsPerRow)
@@ -372,7 +370,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         if (event.action == MotionEvent.ACTION_DOWN) {
             if (sheetBehavior.state == BottomSheetBehavior.STATE_EXPANDED) {
                 val outRect = Rect()
-                binding.appListSheet.getGlobalVisibleRect(outRect)
+                binding.appListSheet.root.getGlobalVisibleRect(outRect)
                 if (!outRect.contains(
                         event.rawX.toInt(),
                         event.rawY.toInt()
@@ -409,7 +407,8 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         var belowId: Int? = null
         var tableRow: TableRow? = null
         for ((idx: Int, appModel: AppModel) in apps.withIndex()) {
-            val appView: View = layoutInflater.inflate(R.layout.item_app, null)
+            val appViewBinding = ItemAppBinding.inflate(layoutInflater)
+            // val appView: View = layoutInflater.inflate(R.layout.item_app, null)
             val col = (idx % appsPerRow)
             val row = idx / appsPerRow
             if (col == 0) {
@@ -422,8 +421,8 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
                 tableRow.weightSum = appsPerRow.toFloat()
                 tableRow.layoutParams = layoutParams
             }
-            appView.iv_app.setImageDrawable(appModel.appIcon)
-            appView.tv_app_name.visibility = View.GONE
+            appViewBinding.ivApp.setImageDrawable(appModel.appIcon)
+            appViewBinding.tvAppName.visibility = View.GONE
             val trLayoutParams = TableRow.LayoutParams(
                 TableRow.LayoutParams.MATCH_PARENT,
                 TableRow.LayoutParams.WRAP_CONTENT, 1f
@@ -434,11 +433,11 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
                 0,
                 (verticalSpace / 2).toInt()
             )
-            appView.layoutParams = trLayoutParams
-            appView.setOnClickListener {
+            appViewBinding.root.layoutParams = trLayoutParams
+            appViewBinding.root.setOnClickListener {
                 startActivity(appModel.launchIntent)
             }
-            tableRow?.addView(appView)
+            tableRow?.addView(appViewBinding.root)
 
             if (col == appsPerRow - 1) {
                 appPredViewGroup.addView(tableRow)
@@ -481,7 +480,7 @@ class MainActivity : AppCompatActivity(), AppsRVAdapter.IAppsRVAdapter, View.OnC
         if (apps.isEmpty()) {
             binding.rlNoPreds.visibility = View.VISIBLE
             binding.rvSuggestions.visibility = View.GONE
-            binding.rlNoPreds.tv_head.setText(getString(R.string.title_no_app_pred, getString(R.string.app_display_name)))
+            binding.tvHead.text = getString(R.string.title_no_app_pred, getString(R.string.app_display_name))
         } else {
             binding.rlNoPreds.visibility = View.GONE
             binding.rvSuggestions.visibility = View.VISIBLE

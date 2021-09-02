@@ -49,15 +49,20 @@ class AppsRVAdapter(
             appIcon = view.findViewById(R.id.iv_app)
             tvAppName = view.findViewById(R.id.tv_app_name)
             view.setOnClickListener {
-                parent.onItemClick(
-                    layoutPosition,
-                    appModels[layoutPosition],
-                    null
-                )
+                if (layoutPosition < appModels.size) {
+                    parent.onItemClick(
+                        layoutPosition,
+                        appModels[layoutPosition],
+                        null
+                    )
+                }
             }
             view.setOnLongClickListener {
-                parent.onItemLongPress(it, appModels[layoutPosition], null)
-                return@setOnLongClickListener true
+                if (layoutPosition < appModels.size) {
+                    parent.onItemLongPress(it, appModels[layoutPosition], null)
+                    return@setOnLongClickListener true
+                }
+                return@setOnLongClickListener false
             }
         }
     }

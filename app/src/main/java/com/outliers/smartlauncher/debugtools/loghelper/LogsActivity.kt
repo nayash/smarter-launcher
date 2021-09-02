@@ -75,7 +75,7 @@ class LogsActivity : AppCompatActivity(), FilesRVAdapterParent {
         val file = File(path)
         val uri: Uri = FileProvider.getUriForFile(
             applicationContext,
-            getString(R.string.sl_file_provider),
+            getString(R.string.smart_launcher_file_provider),
             file
         )
         intent.putExtra(Intent.EXTRA_STREAM, uri)
